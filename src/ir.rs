@@ -35,7 +35,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 
 /////
-///// Method IR
+///// ExtIR - an IR specialized to represent function-like dataflow.
 /////
 
 #[derive(Clone, Debug)]

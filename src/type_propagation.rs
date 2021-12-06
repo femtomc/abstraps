@@ -17,6 +17,10 @@
    where a module-level interpreter might need to coordinate multiple
    local interpreters).
 
+   The `Communication` interface can be used in multithreaded settings
+   so that local interpreters can read from global inference state
+   (e.g. as provided by a module-level interpreter, c.f. above)
+
 */
 
 use crate::ir::{AbstractInterpreter, ExtIR, Instruction, Operator, Var};
@@ -24,7 +28,7 @@ use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, RwLock};
 
 /////
-///// Default interpreter
+///// Interpreter
 /////
 
 #[derive(Debug, PartialEq)]
@@ -85,7 +89,6 @@ pub struct TypeAnalysis<Ty> {
     ts: Vec<Ty>,
 }
 
-// This structure will manage inference for a particular specialization.
 #[derive(Debug)]
 pub struct Interpreter<Ty, G> {
     pub sig: TypeSignature<Ty>,
@@ -119,7 +122,7 @@ where
 /*
 
    A type interpreter which utilizes forward propagation
-   is defined by a unique state mapping (here, `propagate`)
+   is defined by a unique state transition function (here, `propagate`)
 
    -- this method provides a way for the type interpreter to
    evaluate the effects of an IR instruction on the lattice defined
