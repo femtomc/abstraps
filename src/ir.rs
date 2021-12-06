@@ -1,6 +1,6 @@
 /*
 
-   This file is part of Abstrap. License is MIT.
+   This file is part of `abstraps`. License is MIT.
 
    The design of this IR is heavily influenced by
    WebAssembly, Julia's IRTools IR, Julia's IRCode IR,
@@ -13,8 +13,8 @@
    and `K` denotes the set of attributes (static information
    about instructions) which is also user-defined.
 
-   This reflects inspirtion from  the extensible design of MLIR,
-   without worrying too much about conversion between dialects.
+   This reflects inspiration from  the extensible design of MLIR,
+   (but conversion between "intrinsic dialects" is out of scope)
    This IR can be thought of as a stage which can
    further target dialects of MLIR.
 

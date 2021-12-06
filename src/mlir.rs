@@ -1,6 +1,6 @@
 /*
 
-   This file is part of Abstrap. License is MIT.
+   This file is part of `abstraps`. License is MIT.
 
 */
 
