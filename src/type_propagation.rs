@@ -2,14 +2,20 @@
 
    This file is part of `abstraps`. License is MIT.
 
-   Function inference reasons about specializations
-   by using inference frames (which support usage
-   of abstract interpretation passes).
+   An interpreter for forward type propagation.
 
-   The interpreter for a specialization keeps a state machine
+   Supports dataflow-based inference algorithms like those
+   present in Crystal, or Julia
+
+   Exposes the inference interface `Propagation` for users to customize
+   the typing.
+
+   The interpreter keeps a state machine
    representation of the local inference process,
    as a way to coordinate with higher-scoped module inference
-   processes (as part of high-level languages, for instance).
+   processes (as part of high-level languages, for instance,
+   where a module-level interpreter might need to coordinate multiple
+   local interpreters).
 
 */
 
