@@ -1,4 +1,4 @@
-# abstrap
+# abstraps
 
 [![crates.io](https://img.shields.io/crates/v/abstrap.svg)](https://crates.io/crates/abstrap)
 [![CI](https://github.com/femtomc/abstrap/workflows/CI/badge.svg)](https://github.com/femtomc/abstrap/actions?query=workflow%3ACI)
