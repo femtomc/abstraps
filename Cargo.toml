@@ -1,0 +1,20 @@
+[package]
+name = "abstrap"
+version = "0.1.0"
+edition = "2021"
+authors = ["McCoy R. Becker"]
+description = "Extensible compiler middle layer with abstract interpretation and code generation to MLIR."
+repository = "https://github.com/femtomc/abstrap"
+readme = "README.md"
+license-file = "LICENSE"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+
+[build-dependencies]
+bindgen = "0.59.1"
+
+[features]
+mlir = []

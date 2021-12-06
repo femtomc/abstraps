@@ -1,0 +1,12 @@
+/target
+**/*.rs.bk
+Cargo.lock
+bin/
+pkg/
+wasm-pack.log
+.stack-work
+*~
+dist-newstyle
+.history
+*.s
+a.out
