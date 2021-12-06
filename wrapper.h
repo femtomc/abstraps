@@ -1,6 +1,6 @@
 /*
 
-   This file is part of mlir-sys. License is MIT.
+   This file is part of Abstrap. License is MIT.
 
 */
 
