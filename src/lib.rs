@@ -4,7 +4,7 @@
 
 */
 
-mod ir;
+pub mod ir;
 pub mod type_propagation;
 
 #[cfg(feature = "mlir")]
