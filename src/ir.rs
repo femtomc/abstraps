@@ -166,13 +166,7 @@ impl<T, K> ExtIR<T, K> {
         &mut self.blocks[blk].branches
     }
 
-    pub fn push_branch<'b>(
-        &mut self,
-        cond: BranchCondition,
-        from: usize,
-        to: usize,
-        args: Vec<Var>,
-    ) {
+    pub fn push_branch(&mut self, cond: BranchCondition, from: usize, to: usize, args: Vec<Var>) {
         let brs = self.get_branches_mut(from);
         match cond {
             BranchCondition::None => brs.retain(|x| x.isconditional()),
@@ -288,11 +282,15 @@ impl<T, K> ExtIR<T, K> {
         }
 
         for (_, (b, j)) in self.defs.iter_mut().enumerate() {
-            if *b == i as i32 {
-                *b = -1;
-                *j = -1;
-            } else if *b > i as i32 {
-                *b -= i as i32;
+            match *b == i as i32 {
+                true => {
+                    *b = -1;
+                    *j = -1;
+                }
+                false => match *b > i as i32 {
+                    true => *b -= i as i32,
+                    false => (),
+                },
             }
         }
     }
