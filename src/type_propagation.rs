@@ -183,6 +183,21 @@ pub trait Communication<M, R> {
     fn ask(&self, msg: &M) -> Option<R>;
 }
 
+impl<M, R, Ty, G> Communication<M, R> for Interpreter<Ty, G>
+where
+    G: Communication<M, R>,
+{
+    fn ask(&self, msg: &M) -> Option<R> {
+        match &self.global {
+            None => None,
+            Some(rr) => match rr.read() {
+                Err(e) => None,
+                Ok(r) => r.ask(msg),
+            },
+        }
+    }
+}
+
 impl<I, A, G, Ty> AbstractInterpreter<ExtIR<I, A>, TypeAnalysis<Ty>> for Interpreter<Ty, G>
 where
     Ty: Clone,
