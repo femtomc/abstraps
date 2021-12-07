@@ -24,11 +24,11 @@
 */
 
 use crate::ir::{AbstractInterpreter, ExtIR, Instruction, Operator, Var};
-use indenter::indented;
-use std::collections::{HashMap, VecDeque};
-use std::fmt;
-use std::fmt::Write;
-use std::sync::{Arc, RwLock};
+use alloc::collections::vec_deque::VecDeque;
+use alloc::collections::BTreeMap;
+use alloc::string::String;
+use alloc::string::ToString;
+use alloc::vec::Vec;
 
 /////
 ///// Interpreter
@@ -54,25 +54,6 @@ pub struct TypeSignature<Ty> {
     pub ts: Vec<Ty>,
 }
 
-impl<Ty> fmt::Display for TypeSignature<Ty>
-where
-    Ty: fmt::Display,
-{
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "@{} (", self.name)?;
-        let l = self.ts.len();
-        for (ind, t) in self.ts.iter().enumerate() {
-            if ind == l - 1 {
-                write!(f, "{}", t)?;
-            } else {
-                write!(f, "{},", t)?;
-            }
-        }
-        write!(f, ")")?;
-        Ok(())
-    }
-}
-
 #[derive(PartialEq, Debug)]
 pub enum InferenceState<Ty> {
     Inactive,
@@ -90,7 +71,7 @@ pub enum InferenceState<Ty> {
 #[derive(Debug)]
 pub struct BlockFrame<Ty> {
     block_ptr: usize,
-    block_env: HashMap<Var, Ty>,
+    block_env: BTreeMap<Var, Ty>,
     lines: VecDeque<Var>,
 }
 
@@ -111,27 +92,14 @@ pub struct TypeAnalysis<Ty> {
     ts: Vec<Ty>,
 }
 
-impl<Ty> fmt::Display for TypeAnalysis<Ty>
-where
-    Ty: fmt::Display,
-{
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        writeln!(f, "Type map:")?;
-        for (ind, t) in self.ts.iter().enumerate() {
-            write!(indented(f), "%{} :: {}", ind, t)?;
-        }
-        Ok(())
-    }
-}
-
 #[derive(Debug)]
 pub struct Interpreter<Ty, G> {
     pub sig: TypeSignature<Ty>,
     pub frame: BlockFrame<Ty>,
     block_queue: VecDeque<BlockFrame<Ty>>,
     pub state: InferenceState<Ty>,
-    pub env: HashMap<Var, Ty>,
-    global: Option<Arc<RwLock<G>>>,
+    pub env: BTreeMap<Var, Ty>,
+    global: Option<G>,
 }
 
 impl<Ty, G> Interpreter<Ty, G>
@@ -190,10 +158,7 @@ where
     fn ask(&self, msg: &M) -> Option<R> {
         match &self.global {
             None => None,
-            Some(rr) => match rr.read() {
-                Err(e) => None,
-                Ok(r) => r.ask(msg),
-            },
+            Some(rr) => rr.ask(msg),
         }
     }
 }
@@ -209,7 +174,7 @@ where
     type Meta = TypeSignature<Ty>;
 
     fn prepare(meta: Self::Meta, ir: &ExtIR<I, A>) -> Result<Interpreter<Ty, G>, Self::Error> {
-        let mut initial_env: HashMap<Var, Ty> = HashMap::new();
+        let mut initial_env: BTreeMap<Var, Ty> = BTreeMap::new();
         for (t, v) in meta.ts.iter().zip(ir.get_args()) {
             initial_env.insert(v, t.clone());
         }
@@ -224,7 +189,7 @@ where
             frame: bf,
             block_queue: vd,
             state: InferenceState::Active,
-            env: HashMap::<Var, Ty>::new(),
+            env: BTreeMap::<Var, Ty>::new(),
             global: None,
         })
     }
@@ -236,16 +201,13 @@ where
                 let v = self.frame.lines.pop_front().unwrap();
                 match &self.global {
                     None => (),
-                    Some(rr) => {
-                        let read = rr.read().unwrap();
-                        match read.ask(tsig) {
-                            None => (),
-                            Some(t) => {
-                                self.frame.block_env.insert(v, t);
-                                self.state = InferenceState::Active;
-                            }
+                    Some(rr) => match rr.ask(tsig) {
+                        None => (),
+                        Some(t) => {
+                            self.frame.block_env.insert(v, t);
+                            self.state = InferenceState::Active;
                         }
-                    }
+                    },
                 }
             }
 
@@ -253,7 +215,7 @@ where
                 let v = self.frame.lines.pop_front();
                 match v {
                     None => {
-                        self.merge();
+                        self.merge()?;
                         match self.block_queue.pop_front() {
                             None => self.state = InferenceState::Finished,
                             Some(blk) => {
@@ -307,10 +269,55 @@ where
     }
 
     fn result(&mut self) -> Result<TypeAnalysis<Ty>, Self::Error> {
-        let mut env = self.env.drain().collect::<Vec<_>>();
+        let mut env = self.env.iter().collect::<Vec<_>>();
         env.sort_by(|a, b| a.0.id.partial_cmp(&b.0.id).unwrap());
         let ts = env.iter().map(|x| x.1.clone()).collect::<Vec<_>>();
         let analysis = TypeAnalysis { ts };
         Ok(analysis)
+    }
+}
+
+/////
+///// `std` features.
+/////
+
+#[cfg(feature = "std")]
+use indenter::indented;
+#[cfg(feature = "std")]
+use std::fmt;
+#[cfg(feature = "std")]
+use std::fmt::Write;
+
+#[cfg(feature = "std")]
+impl<Ty> fmt::Display for TypeSignature<Ty>
+where
+    Ty: fmt::Display,
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "@{} (", self.name)?;
+        let l = self.ts.len();
+        for (ind, t) in self.ts.iter().enumerate() {
+            if ind == l - 1 {
+                write!(f, "{}", t)?;
+            } else {
+                write!(f, "{},", t)?;
+            }
+        }
+        write!(f, ")")?;
+        Ok(())
+    }
+}
+
+#[cfg(feature = "std")]
+impl<Ty> fmt::Display for TypeAnalysis<Ty>
+where
+    Ty: fmt::Display,
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(f, "Type map:")?;
+        for (ind, t) in self.ts.iter().enumerate() {
+            write!(indented(f), "%{} :: {}", ind, t)?;
+        }
+        Ok(())
     }
 }

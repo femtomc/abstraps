@@ -12,10 +12,12 @@ license-file = "LICENSE"
 
 [dependencies]
 indenter = "0.3.3"
-serde = { version = "1.0", features = ["derive"] }
+serde = { version = "1.0", default-features = false, features = ["derive", "alloc"] }
 
 [build-dependencies]
 bindgen = "0.59.1"
 
 [features]
+defaults = ["std"]
 mlir = []
+std = []

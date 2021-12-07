@@ -4,6 +4,8 @@
 
 */
 
+#![allow(dead_code)]
+
 extern crate bindgen;
 
 use std::env;

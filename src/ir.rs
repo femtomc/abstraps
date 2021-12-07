@@ -31,8 +31,9 @@
 */
 
 // Supports serialization to (compressed) bincode.
+use alloc::string::String;
+use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
-use std::fmt;
 
 /////
 ///// ExtIR - an IR specialized to represent function-like dataflow.
@@ -43,7 +44,7 @@ pub enum IRError {
     Fallback,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Copy, Clone, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Debug)]
 pub struct Var {
     pub id: usize,
 }
@@ -52,33 +53,10 @@ pub fn var(id: usize) -> Var {
     Var { id }
 }
 
-impl fmt::Display for Var {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "%{}", self.id)
-    }
-}
-
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum Operator<T> {
     Intrinsic(T),
     ModuleRef(Vec<String>, String),
-}
-
-impl<T> fmt::Display for Operator<T>
-where
-    T: fmt::Display,
-{
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Operator::Intrinsic(v) => write!(f, "{}", v),
-            Operator::ModuleRef(module, name) => {
-                for k in module.iter() {
-                    write!(f, "{}.", k)?;
-                }
-                write!(f, "@{}", name)
-            }
-        }
-    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -92,24 +70,6 @@ pub struct Branch {
     cond: BranchCondition,
     block: usize,
     args: Vec<Var>,
-}
-
-impl fmt::Display for Branch {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "  br {} (", self.block)?;
-        let l = self.args.len();
-        for (ind, arg) in self.args.iter().enumerate() {
-            match l - 1 == ind {
-                true => write!(f, "{}", arg)?,
-                _ => write!(f, "{}, ", arg)?,
-            };
-        }
-        write!(f, ")")?;
-        match self.cond {
-            BranchCondition::None => Ok(()),
-            BranchCondition::Some(v) => write!(f, " if {}", v),
-        }
-    }
 }
 
 impl Branch {
@@ -134,37 +94,6 @@ pub struct Instruction<T, K> {
     pub op: Operator<T>,
     pub args: Vec<Var>,
     pub attrs: Vec<K>,
-}
-
-impl<T, K> fmt::Display for Instruction<T, K>
-where
-    T: fmt::Display,
-    K: fmt::Display,
-{
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.op)?;
-        write!(f, "(")?;
-        let l = self.args.len();
-        for (ind, arg) in self.args.iter().enumerate() {
-            match l - 1 == ind {
-                true => write!(f, "{}", arg)?,
-                _ => write!(f, "{}, ", arg)?,
-            };
-        }
-        write!(f, ")")?;
-        if !self.attrs.is_empty() {
-            write!(f, " {{ ")?;
-            let l = self.attrs.len();
-            for (ind, attr) in self.attrs.iter().enumerate() {
-                match l - 1 == ind {
-                    true => write!(f, "{}", attr)?,
-                    _ => write!(f, "{}, ", attr)?,
-                };
-            }
-            write!(f, " }}")?;
-        }
-        Ok(())
-    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -369,39 +298,6 @@ impl<T, K> ExtIR<T, K> {
     }
 }
 
-impl<T, K> fmt::Display for ExtIR<T, K>
-where
-    T: fmt::Display,
-    K: fmt::Display,
-{
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        for ind in 0..self.blocks.len() {
-            write!(f, "{}: ", ind)?;
-            let b = &self.blocks[ind];
-            let bargs = &b.args;
-            if !bargs.is_empty() {
-                write!(f, "(")?;
-                let l = bargs.len();
-                for (ind, arg) in bargs.iter().enumerate() {
-                    match l - 1 == ind {
-                        true => write!(f, "{}", arg)?,
-                        _ => write!(f, "{}, ", arg)?,
-                    };
-                }
-                write!(f, ")")?;
-            }
-            writeln!(f)?;
-            for (v, instr) in self.block_iter(ind) {
-                writeln!(f, "  {} = {}", v, instr)?;
-            }
-            for br in &self.blocks[ind].branches {
-                writeln!(f, "{}", br)?;
-            }
-        }
-        Ok(())
-    }
-}
-
 #[cfg(test)]
 mod extir_tests {
     use super::*;
@@ -536,4 +432,121 @@ pub trait AbstractInterpreter<IR, R> {
     fn step(&mut self, ir: &IR) -> Result<(), Self::Error>;
 
     fn result(&mut self) -> Result<R, Self::Error>;
+}
+
+/////
+///// `std` features.
+/////
+
+#[cfg(feature = "std")]
+use std::fmt;
+
+#[cfg(feature = "std")]
+impl fmt::Display for Var {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "%{}", self.id)
+    }
+}
+
+#[cfg(feature = "std")]
+impl<T> fmt::Display for Operator<T>
+where
+    T: fmt::Display,
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Operator::Intrinsic(v) => write!(f, "{}", v),
+            Operator::ModuleRef(module, name) => {
+                for k in module.iter() {
+                    write!(f, "{}.", k)?;
+                }
+                write!(f, "@{}", name)
+            }
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl fmt::Display for Branch {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "  br {} (", self.block)?;
+        let l = self.args.len();
+        for (ind, arg) in self.args.iter().enumerate() {
+            match l - 1 == ind {
+                true => write!(f, "{}", arg)?,
+                _ => write!(f, "{}, ", arg)?,
+            };
+        }
+        write!(f, ")")?;
+        match self.cond {
+            BranchCondition::None => Ok(()),
+            BranchCondition::Some(v) => write!(f, " if {}", v),
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl<T, K> fmt::Display for Instruction<T, K>
+where
+    T: fmt::Display,
+    K: fmt::Display,
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.op)?;
+        write!(f, "(")?;
+        let l = self.args.len();
+        for (ind, arg) in self.args.iter().enumerate() {
+            match l - 1 == ind {
+                true => write!(f, "{}", arg)?,
+                _ => write!(f, "{}, ", arg)?,
+            };
+        }
+        write!(f, ")")?;
+        if !self.attrs.is_empty() {
+            write!(f, " {{ ")?;
+            let l = self.attrs.len();
+            for (ind, attr) in self.attrs.iter().enumerate() {
+                match l - 1 == ind {
+                    true => write!(f, "{}", attr)?,
+                    _ => write!(f, "{}, ", attr)?,
+                };
+            }
+            write!(f, " }}")?;
+        }
+        Ok(())
+    }
+}
+
+#[cfg(feature = "std")]
+impl<T, K> fmt::Display for ExtIR<T, K>
+where
+    T: fmt::Display,
+    K: fmt::Display,
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        for ind in 0..self.blocks.len() {
+            write!(f, "{}: ", ind)?;
+            let b = &self.blocks[ind];
+            let bargs = &b.args;
+            if !bargs.is_empty() {
+                write!(f, "(")?;
+                let l = bargs.len();
+                for (ind, arg) in bargs.iter().enumerate() {
+                    match l - 1 == ind {
+                        true => write!(f, "{}", arg)?,
+                        _ => write!(f, "{}, ", arg)?,
+                    };
+                }
+                write!(f, ")")?;
+            }
+            writeln!(f)?;
+            for (v, instr) in self.block_iter(ind) {
+                writeln!(f, "  {} = {}", v, instr)?;
+            }
+            for br in &self.blocks[ind].branches {
+                writeln!(f, "{}", br)?;
+            }
+        }
+        Ok(())
+    }
 }
