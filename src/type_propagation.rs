@@ -24,7 +24,10 @@
 */
 
 use crate::ir::{AbstractInterpreter, ExtIR, Instruction, Operator, Var};
+use indenter::indented;
 use std::collections::{HashMap, VecDeque};
+use std::fmt;
+use std::fmt::Write;
 use std::sync::{Arc, RwLock};
 
 /////
@@ -51,9 +54,12 @@ pub struct TypeSignature<Ty> {
     pub ts: Vec<Ty>,
 }
 
-impl fmt::Display for TypeSignature {
+impl<Ty> fmt::Display for TypeSignature<Ty>
+where
+    Ty: fmt::Display,
+{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "@{} (", self.mname)?;
+        write!(f, "@{} (", self.name)?;
         let l = self.ts.len();
         for (ind, t) in self.ts.iter().enumerate() {
             if ind == l - 1 {
@@ -105,11 +111,14 @@ pub struct TypeAnalysis<Ty> {
     ts: Vec<Ty>,
 }
 
-impl fmt::Display for TypeAnalysis {
+impl<Ty> fmt::Display for TypeAnalysis<Ty>
+where
+    Ty: fmt::Display,
+{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "Type map:")?;
-        for (ind, t) in self.0.iter().enumerate() {
-            writeln!(indented(f), "%{} :: {}", ind, t)?;
+        for (ind, t) in self.ts.iter().enumerate() {
+            write!(indented(f), "%{} :: {}", ind, t)?;
         }
         Ok(())
     }
