@@ -51,6 +51,22 @@ pub struct TypeSignature<Ty> {
     pub ts: Vec<Ty>,
 }
 
+impl fmt::Display for TypeSignature {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "@{} (", self.mname)?;
+        let l = self.ts.len();
+        for (ind, t) in self.ts.iter().enumerate() {
+            if ind == l - 1 {
+                write!(f, "{}", t)?;
+            } else {
+                write!(f, "{},", t)?;
+            }
+        }
+        write!(f, ")")?;
+        Ok(())
+    }
+}
+
 #[derive(PartialEq, Debug)]
 pub enum InferenceState<Ty> {
     Inactive,
@@ -87,6 +103,16 @@ where
 #[derive(Debug)]
 pub struct TypeAnalysis<Ty> {
     ts: Vec<Ty>,
+}
+
+impl fmt::Display for TypeAnalysis {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(f, "Type map:")?;
+        for (ind, t) in self.0.iter().enumerate() {
+            writeln!(indented(f), "%{} :: {}", ind, t)?;
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug)]
