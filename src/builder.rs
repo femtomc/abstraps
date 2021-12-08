@@ -74,7 +74,21 @@ impl<I, A> ExtIRBuilder<I, A> {
         let block_ptr = self.get_block_ptr();
         let new_ptr = self.ir.push_blk();
         self.set_block_ptr(new_ptr);
-        return block_ptr;
+        block_ptr
+    }
+
+    pub fn jump_blk(&mut self, args: Vec<Var>) -> Vec<Var> {
+        let block_ptr = self.get_block_ptr();
+        let new_ptr = self.ir.push_blk();
+        self.set_block_ptr(new_ptr);
+        let block_args = args.iter().map(|_| self.push_arg()).collect();
+        self.ir.push_branch(None, block_ptr, new_ptr, args);
+        block_args
+    }
+
+    /// Returns the IR (and ownership of the IR).
+    pub fn dump(self) -> ExtIR<I, A> {
+        self.ir
     }
 }
 
@@ -107,7 +121,7 @@ where
     type IRBuilder = ExtIRBuilder<I, A>;
     type Error = BuilderError;
 
-    fn prepare_builder(&self) -> Result<Self::IRBuilder, Self::Error> {
+    fn prepare(&self) -> Result<Self::IRBuilder, Self::Error> {
         let ir = ExtIR::<I, A>::default();
         Ok(ExtIRBuilder {
             block_ptr: 0,
@@ -124,7 +138,7 @@ where
     }
 
     fn lower(&self) -> Result<ExtIR<I, A>, Self::Error> {
-        let mut b = Lowering::<ExtIR<I, A>>::prepare_builder(self)?;
+        let mut b = Lowering::<ExtIR<I, A>>::prepare(self)?;
         Lowering::<ExtIR<I, A>>::build(self, &mut b)?;
         Ok(b.ir)
     }
@@ -151,14 +165,12 @@ where
 ///// `std` features.
 /////
 
-#[cfg(feature = "std")]
 use std::fmt;
 
-#[cfg(feature = "std")]
 impl<I, A> fmt::Display for ExtIRBuilder<I, A>
 where
-    I: Display,
-    A: Display,
+    I: fmt::Display,
+    A: fmt::Display,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.ir)

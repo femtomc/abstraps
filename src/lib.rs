@@ -5,12 +5,11 @@
 */
 
 #![allow(dead_code)]
-#![no_std]
 
 #[macro_use]
 extern crate alloc;
 
 pub mod backends;
 pub mod builder;
+pub mod interp;
 pub mod ir;
-pub mod patterns;

@@ -70,11 +70,11 @@ impl<I, A> Instruction<I, A> {
         &self.op
     }
 
-    pub fn get_args(&self) -> &Vec<Var> {
+    pub fn get_args(&self) -> &[Var] {
         &self.args
     }
 
-    pub fn get_attrs(&self) -> &Vec<A> {
+    pub fn get_attrs(&self) -> &[A] {
         &self.attrs
     }
 }
@@ -87,15 +87,15 @@ pub struct Branch {
 }
 
 impl Branch {
-    fn get_args(&self) -> &Vec<Var> {
+    pub fn get_args(&self) -> &[Var] {
         &self.args
     }
 
-    fn get_block(&self) -> usize {
+    pub fn get_block(&self) -> usize {
         self.block
     }
 
-    fn is_conditional(&self) -> bool {
+    pub fn is_conditional(&self) -> bool {
         match self.cond {
             Some(_v) => true,
             None => false,
@@ -105,21 +105,21 @@ impl Branch {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct BasicBlock<I, A> {
-    insts: Vec<Instruction<I, A>>,
     args: Vec<Var>,
+    insts: Vec<Instruction<I, A>>,
     branches: Vec<Branch>,
 }
 
 impl<I, A> BasicBlock<I, A> {
-    pub fn get_insts(&self) -> &Vec<Instruction<I, A>> {
+    pub fn get_insts(&self) -> &[Instruction<I, A>] {
         &self.insts
     }
 
-    pub fn get_args(&self) -> &Vec<Var> {
+    pub fn get_args(&self) -> &[Var] {
         &self.args
     }
 
-    pub fn get_branches(&self) -> &Vec<Branch> {
+    pub fn get_branches(&self) -> &[Branch] {
         &self.branches
     }
 }
@@ -160,8 +160,12 @@ impl<I, A> Default for ExtIR<I, A> {
 }
 
 impl<I, A> ExtIR<I, A> {
-    pub fn get_args(&self) -> &Vec<Var> {
-        &self.blocks[0].get_args()
+    pub fn get_args(&self) -> &[Var] {
+        self.blocks[0].get_args()
+    }
+
+    pub fn get_block_args(&self, blk: usize) -> &[Var] {
+        self.blocks[blk].get_args()
     }
 
     pub fn push_arg(&mut self, blk: usize) -> Var {
@@ -177,11 +181,11 @@ impl<I, A> ExtIR<I, A> {
         self.blocks.len() - 1
     }
 
-    fn get_branches(&self, blk: usize) -> &Vec<Branch> {
+    pub fn get_branches(&self, blk: usize) -> &[Branch] {
         &self.blocks[blk].branches
     }
 
-    fn get_branches_mut(&mut self, blk: usize) -> &mut Vec<Branch> {
+    pub fn get_branches_mut(&mut self, blk: usize) -> &mut Vec<Branch> {
         &mut self.blocks[blk].branches
     }
 
@@ -406,7 +410,7 @@ impl<'b, I, A> Iterator for ImmutableBlockIterator<'b, I, A> {
 pub trait Lowering<T> {
     type IRBuilder;
     type Error;
-    fn prepare_builder(&self) -> Result<Self::IRBuilder, Self::Error>;
+    fn prepare(&self) -> Result<Self::IRBuilder, Self::Error>;
     fn build(&self, b: &mut Self::IRBuilder) -> Result<(), Self::Error>;
     fn lower(&self) -> Result<T, Self::Error>;
 }
@@ -438,14 +442,9 @@ pub trait Lowering<T> {
 // `R` encodes the return analysis type -- it's a contract
 // specified for `self.result()`.
 pub trait AbstractInterpreter<IR, R> {
-    type Error;
-    type LatticeElement;
-
-    // This is basically "state required to prepare an
-    // interpreter, before `step`".
-    //
-    // For typing, this might be type annotations.
     type Meta;
+    type LatticeElement;
+    type Error;
 
     fn prepare(meta: Self::Meta, ir: &IR) -> Result<Self, Self::Error>
     where
@@ -460,33 +459,29 @@ pub trait AbstractInterpreter<IR, R> {
 ///// `std` features.
 /////
 
-#[cfg(feature = "std")]
 use std::fmt;
 
-#[cfg(feature = "std")]
 impl fmt::Display for Var {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "%{}", self.id)
+        write!(f, "%{}", self.get_id())
     }
 }
 
-#[cfg(feature = "std")]
-impl<T> fmt::Display for Operator<T>
+impl<I> fmt::Display for Operator<I>
 where
-    T: fmt::Display,
+    I: fmt::Display,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Operator::Intrinsic(v) => write!(f, "{}", v),
             Operator::ModuleRef(module, name) => match module {
                 None => write!(f, "@{}", name),
-                Some(v) => write!(f, "{}.@{}", v, k)?,
+                Some(v) => write!(f, "{}.@{}", v, name),
             },
         }
     }
 }
 
-#[cfg(feature = "std")]
 impl fmt::Display for Branch {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "  br {} (", self.block)?;
@@ -505,11 +500,10 @@ impl fmt::Display for Branch {
     }
 }
 
-#[cfg(feature = "std")]
 impl<I, A> fmt::Display for Instruction<I, A>
 where
-    T: fmt::Display,
-    K: fmt::Display,
+    I: fmt::Display,
+    A: fmt::Display,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.op)?;
@@ -537,11 +531,10 @@ where
     }
 }
 
-#[cfg(feature = "std")]
 impl<I, A> fmt::Display for ExtIR<I, A>
 where
-    T: fmt::Display,
-    K: fmt::Display,
+    I: fmt::Display,
+    A: fmt::Display,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for ind in 0..self.blocks.len() {
