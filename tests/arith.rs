@@ -84,7 +84,6 @@ fn arith_0() {
     let args = builder.jump_blk(vec![v1, v2, v3]);
     builder.build_instr(Operator::Intrinsic(ArithIntrinsic::Mul), args, Vec::new());
     let ir = builder.dump();
-    println!("{}", ir);
     let m = Meta::new("".to_string(), vec![ArithLattice::V(6), ArithLattice::V(6)]);
     let mut interp =
         Interpreter::<ArithIntrinsic, ArithAttribute, ArithLattice, Global>::prepare(m, &ir)
@@ -93,7 +92,7 @@ fn arith_0() {
     interp.step(&ir);
     interp.step(&ir);
     interp.step(&ir);
-    println!("{:?}", interp);
     let analysis = interp.result();
-    println!("{:?}", analysis);
+    let v = analysis.unwrap().get_ret().unwrap();
+    assert_eq!(v, ArithLattice::V(432))
 }

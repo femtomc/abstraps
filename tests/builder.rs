@@ -27,5 +27,4 @@ fn build_0() {
         Vec::new(),
     );
     let serialized = serde_json::to_string(&builder).unwrap();
-    println!("{}", serialized);
 }

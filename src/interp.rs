@@ -109,6 +109,15 @@ pub struct Analysis<V> {
     vs: Vec<V>,
 }
 
+impl<V> Analysis<V>
+where
+    V: Clone,
+{
+    pub fn get_ret(&self) -> Option<V> {
+        self.vs.last().cloned()
+    }
+}
+
 /// The `Interpreter` schema structure here represents one design
 /// idea for "forward propagation" abstract interpretation.
 ///

@@ -62,7 +62,6 @@ fn infer_0() {
     let args = builder.jump_blk(vec![v]);
     builder.build_instr(Operator::Intrinsic(Intrinsic0::Fake), args, Vec::new());
     let ir = builder.dump();
-    println!("{}", ir);
     let m = Meta::new("".to_string(), vec![Lattice0::Fake]);
     let mut interp =
         Interpreter::<Intrinsic0, Attribute0, Lattice0, Global>::prepare(m, &ir).unwrap();
@@ -70,7 +69,5 @@ fn infer_0() {
     interp.step(&ir);
     interp.step(&ir);
     interp.step(&ir);
-    println!("{:?}", interp);
     let analysis = interp.result();
-    println!("{:?}", analysis);
 }
