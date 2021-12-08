@@ -30,21 +30,15 @@
 
 */
 
-// Supports serialization to (compressed) bincode.
 use alloc::string::String;
 use alloc::vec::Vec;
-use serde::{Deserialize, Serialize};
-
-/////
-///// ExtIR - an IR specialized to represent function-like dataflow.
-/////
 
 #[derive(Clone, Debug)]
 pub enum IRError {
     Fallback,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Debug)]
+#[derive(Clone, Debug, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Var {
     pub id: usize,
 }
@@ -53,50 +47,44 @@ pub fn var(id: usize) -> Var {
     Var { id }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub enum Operator<T> {
     Intrinsic(T),
     ModuleRef(Vec<String>, String),
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub enum BranchCondition {
-    None,
-    Some(Var),
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct Branch {
-    cond: BranchCondition,
-    block: usize,
-    args: Vec<Var>,
-}
-
-impl Branch {
-    fn arguments(&mut self) -> &mut Vec<Var> {
-        &mut self.args
-    }
-
-    pub fn block(&self) -> usize {
-        self.block
-    }
-
-    fn isconditional(&self) -> bool {
-        match self.cond {
-            BranchCondition::Some(_v) => true,
-            BranchCondition::None => false,
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct Instruction<T, K> {
     pub op: Operator<T>,
     pub args: Vec<Var>,
     pub attrs: Vec<K>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Clone, Debug)]
+pub struct Branch {
+    cond: Option<Var>,
+    block: usize,
+    args: Vec<Var>,
+}
+
+impl Branch {
+    fn get_args(&mut self) -> &mut Vec<Var> {
+        &mut self.args
+    }
+
+    fn get_block(&self) -> usize {
+        self.block
+    }
+
+    fn is_conditional(&self) -> bool {
+        match self.cond {
+            Some(_v) => true,
+            None => false,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct BasicBlock<T, K> {
     insts: Vec<Instruction<T, K>>,
     pub args: Vec<Var>,
@@ -113,18 +101,18 @@ impl<T, K> Default for BasicBlock<T, K> {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct IRLInfo {
     file: String,
     module: String,
     line: usize,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct ExtIR<T, K> {
     defs: Vec<(i32, i32)>,
-    pub blocks: Vec<BasicBlock<T, K>>,
-    lines: Vec<IRLInfo>,
+    blocks: Vec<BasicBlock<T, K>>,
+    lines: Vec<Option<IRLInfo>>,
 }
 
 impl<T, K> Default for ExtIR<T, K> {
@@ -158,19 +146,22 @@ impl<T, K> ExtIR<T, K> {
         self.blocks.len() - 1
     }
 
-    pub fn get_branches(&self, blk: usize) -> &Vec<Branch> {
+    fn get_branches(&self, blk: usize) -> &Vec<Branch> {
         &self.blocks[blk].branches
     }
 
-    pub fn get_branches_mut(&mut self, blk: usize) -> &mut Vec<Branch> {
+    fn get_branches_mut(&mut self, blk: usize) -> &mut Vec<Branch> {
         &mut self.blocks[blk].branches
     }
 
-    pub fn push_branch(&mut self, cond: BranchCondition, from: usize, to: usize, args: Vec<Var>) {
+    /// Push a branch from the block indexed by `from`
+    /// to the branch indexed by `to`.
+    /// The user must supply a branch condition in `cond`.
+    pub fn push_branch(&mut self, cond: Option<Var>, from: usize, to: usize, args: Vec<Var>) {
         let brs = self.get_branches_mut(from);
         match cond {
-            BranchCondition::None => brs.retain(|x| x.isconditional()),
-            BranchCondition::Some(_v) => (),
+            None => brs.retain(|x| x.is_conditional()),
+            Some(_v) => (),
         }
         brs.push(Branch {
             cond,
@@ -179,6 +170,9 @@ impl<T, K> ExtIR<T, K> {
         });
     }
 
+    /// Get an immutable reference to a "line" of the IR.
+    /// The IR is indexed with `id` (a `Var` instance).
+    /// This returns `(Var, &Instruction<T, K>)`.
     pub fn get_instr(&self, id: Var) -> Option<(Var, &Instruction<T, K>)> {
         match self.get_var_blockidx(id) {
             None => None,
@@ -190,6 +184,8 @@ impl<T, K> ExtIR<T, K> {
         }
     }
 
+    /// Push an instruction onto the IR at block index `blk`.
+    /// Returns a new `Var` reference to that instruction.
     pub fn push_instr(&mut self, blk: usize, v: Instruction<T, K>) -> Var {
         let arg = var(self.defs.len());
         let len = self.blocks[blk].insts.len();
@@ -210,7 +206,8 @@ impl<T, K> ExtIR<T, K> {
         }
     }
 
-    pub fn get_block_vars(&self, id: usize) -> Vec<Var> {
+    /// Get the vector of `Var` which index into block with index `id`.
+    fn get_block_vars(&self, id: usize) -> Vec<Var> {
         let v = self
             .defs
             .iter()
@@ -221,7 +218,8 @@ impl<T, K> ExtIR<T, K> {
         m.iter().map(|v| v.0).collect::<Vec<_>>()
     }
 
-    pub fn block_iter(&self, id: usize) -> ImmutableBlockIterator<T, K> {
+    /// Get an immutable iterator over basic blocks.
+    fn block_iter(&self, id: usize) -> ImmutableBlockIterator<T, K> {
         let ks = self.get_block_vars(id);
         ImmutableBlockIterator {
             ir: self,
@@ -230,7 +228,8 @@ impl<T, K> ExtIR<T, K> {
         }
     }
 
-    pub fn block_iter_mut(&mut self, id: usize) -> MutableBlockIterator<T, K> {
+    /// Get a mutable iterator over basic blocks.
+    fn block_iter_mut(&mut self, id: usize) -> MutableBlockIterator<T, K> {
         let ks = self.get_block_vars(id);
         MutableBlockIterator {
             ir: self,
@@ -239,6 +238,7 @@ impl<T, K> ExtIR<T, K> {
         }
     }
 
+    /// Get the block index and SSA index for `v: Var`.
     fn get_var_blockidx(&self, v: Var) -> Option<(usize, i32)> {
         let (b, i) = self.defs.get(v.id).unwrap_or(&(-1, -1));
         if *i < 0 {
@@ -272,7 +272,7 @@ impl<T, K> ExtIR<T, K> {
                     let br = &b.branches[bi];
                     if br.block >= i {
                         b.branches[bi] = Branch {
-                            cond: br.cond.clone(),
+                            cond: br.cond,
                             block: br.block - 1,
                             args: br.args.clone(),
                         };
@@ -293,26 +293,6 @@ impl<T, K> ExtIR<T, K> {
                 },
             }
         }
-    }
-}
-
-#[cfg(test)]
-mod extir_tests {
-    use super::*;
-
-    #[derive(Debug)]
-    enum FakeIntrinsic {
-        Null,
-    }
-
-    #[derive(Debug)]
-    enum FakeAttribute {
-        Null,
-    }
-
-    #[test]
-    fn test_construction() {
-        let _ir = ExtIR::<FakeIntrinsic, FakeAttribute>::default();
     }
 }
 
@@ -477,8 +457,8 @@ impl fmt::Display for Branch {
         }
         write!(f, ")")?;
         match self.cond {
-            BranchCondition::None => Ok(()),
-            BranchCondition::Some(v) => write!(f, " if {}", v),
+            None => Ok(()),
+            Some(v) => write!(f, " if {}", v),
         }
     }
 }

@@ -4,11 +4,9 @@ version = "0.1.2"
 edition = "2021"
 authors = ["McCoy R. Becker"]
 description = "Extensible compiler middle layer with abstract interpretation and code generation to MLIR."
-repository = "https://github.com/femtomc/abstrap"
+repository = "https://github.com/femtomc/abstraps"
 readme = "README.md"
 license-file = "LICENSE"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 indenter = "0.3.3"

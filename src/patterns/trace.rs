@@ -2,23 +2,17 @@
 
    This file is part of `abstraps`. License is MIT.
 
-   An interpreter for forward type propagation.
+   A partial evaluator which records a trace during evaluation.
 
-   Supports dataflow-based inference algorithms like those
-   present in Crystal, or Julia
-
-   Exposes the inference interface `Propagation` for users to customize
-   the typing.
-
-   The interpreter keeps a state machine
-   representation of the local inference process,
-   as a way to coordinate with higher-scoped module inference
+   The evaluator keeps a state machine
+   representation of the local tracing process,
+   as a way to coordinate with higher-scoped module
    processes (as part of high-level languages, for instance,
    where a module-level interpreter might need to coordinate multiple
-   local interpreters).
+   local evaluators).
 
    The `Communication` interface can be used in multithreaded settings
-   so that local interpreters can read from global inference state
+   so that local evaluators can read from global state
    (e.g. as provided by a module-level interpreter, c.f. above)
 
 */

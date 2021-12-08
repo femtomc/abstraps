@@ -17,7 +17,7 @@ The framework provides:
 2. Interfaces for defining interpreters which act as abstract virtual machines on the IR, as well as reference (usable!) interpreters for standard design patterns.
 3. Builder interfaces which support code generation to MLIR.
 
-"Extensibility" means that there are no fixed intrinsics built into the IR (or any of the interfaces). The same is true for abstract lattices -- the interpreter patterns describe (certain instances) of abstract interpreters will traverse the IR, but the user must provide the semantics by specifying intrinsics and how the interpreter should interpret the intrinsics on a user-defined lattice.
+"Extensibility" means that there are no fixed intrinsics built into the IR (or any of the interfaces). The same is true for abstract lattices -- the interpreter patterns describe how (certain instances) of abstract interpreters will traverse the IR, but the user must provide the semantics by specifying intrinsics and how the interpreter should interpret the intrinsics on a user-defined lattice.
 
 <sup>
 Started by <a href="https://femtomc.github.io/">McCoy R. Becker</a> during <a href="https://pl-design-seminar.seas.harvard.edu/">Harvard CS 252r</a>. All code is licensed under the <a href="LICENSE">MIT License</a>.
