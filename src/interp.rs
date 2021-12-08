@@ -144,16 +144,16 @@ impl<I, A, V, G> Interpreter<I, A, V, G>
 where
     V: Clone,
 {
-    fn get(&self, v: &Var) -> Option<V> {
+    pub fn get(&self, v: &Var) -> Option<V> {
         self.active.block_env.get(v).cloned()
     }
 
-    fn merge_insert(&mut self, k: &Var, v: V) -> Result<(), InterpreterError> {
+    pub fn merge_insert(&mut self, k: &Var, v: V) -> Result<(), InterpreterError> {
         self.env.insert(*k, v);
         Ok(())
     }
 
-    fn merge(&mut self) -> Result<(), InterpreterError> {
+    pub fn merge(&mut self) -> Result<(), InterpreterError> {
         for (k, v) in &self.active.block_env {
             self.env.insert(*k, v.clone());
         }

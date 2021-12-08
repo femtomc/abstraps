@@ -51,9 +51,9 @@ impl<I, A> ExtIRBuilder<I, A> {
         self.ir.push_instr(self.block_ptr, instr)
     }
 
-    pub fn build_instr(&mut self, op: Operator<I>, args: Vec<Var>, attrs: Vec<A>) {
+    pub fn build_instr(&mut self, op: Operator<I>, args: Vec<Var>, attrs: Vec<A>) -> Var {
         let instr = self.create_instr(op, args, attrs);
-        self.push_instr(instr);
+        self.push_instr(instr)
     }
 
     /// Append a new `Branch` to the current block.

@@ -3,73 +3,69 @@ use abstraps::interp::{Communication, Interpreter, InterpreterError, Meta, Propa
 use abstraps::ir::{AbstractInterpreter, Instruction, Operator};
 use std::fmt;
 
-// --------------- SMOKE TEST 0 --------------- //
+// --------------- Smoke test --------------- //
 
 // Fully specify the interpreter interface.
 
 #[derive(Debug)]
-pub enum FakeIntrinsic {
+pub enum Intrinsic0 {
     Fake,
 }
 
-impl fmt::Display for FakeIntrinsic {
+impl fmt::Display for Intrinsic0 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "fake")
     }
 }
 
 #[derive(Debug)]
-pub enum FakeAttribute {
+pub enum Attribute0 {
     Fake,
 }
 
-impl fmt::Display for FakeAttribute {
+impl fmt::Display for Attribute0 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Fake")
     }
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum FakeLattice {
+pub enum Lattice0 {
     Fake,
     Other(String),
 }
 
 #[derive(Debug)]
 struct Global;
-impl Communication<Meta<FakeLattice>, FakeLattice> for Global {
-    fn ask(&self, msg: &Meta<FakeLattice>) -> Option<FakeLattice> {
+impl Communication<Meta<Lattice0>, Lattice0> for Global {
+    fn ask(&self, msg: &Meta<Lattice0>) -> Option<Lattice0> {
         return None;
     }
 }
 
-impl Propagation<FakeIntrinsic, FakeAttribute, FakeLattice, InterpreterError>
-    for Interpreter<FakeIntrinsic, FakeAttribute, FakeLattice, Global>
+impl Propagation<Intrinsic0, Attribute0, Lattice0, InterpreterError>
+    for Interpreter<Intrinsic0, Attribute0, Lattice0, Global>
 {
     fn propagate(
         &mut self,
-        instr: &Instruction<FakeIntrinsic, FakeAttribute>,
-    ) -> Result<FakeLattice, InterpreterError> {
-        return Ok(FakeLattice::Fake);
+        instr: &Instruction<Intrinsic0, Attribute0>,
+    ) -> Result<Lattice0, InterpreterError> {
+        return Ok(Lattice0::Fake);
     }
 }
 
 #[test]
 fn infer_0() {
-    let mut builder = ExtIRBuilder::<FakeIntrinsic, FakeAttribute>::default();
+    let mut builder = ExtIRBuilder::<Intrinsic0, Attribute0>::default();
     let v = builder.push_arg();
-    builder.build_instr(
-        Operator::Intrinsic(FakeIntrinsic::Fake),
-        vec![v],
-        Vec::new(),
-    );
+    builder.build_instr(Operator::Intrinsic(Intrinsic0::Fake), vec![v], Vec::new());
     let args = builder.jump_blk(vec![v]);
-    builder.build_instr(Operator::Intrinsic(FakeIntrinsic::Fake), args, Vec::new());
+    builder.build_instr(Operator::Intrinsic(Intrinsic0::Fake), args, Vec::new());
     let ir = builder.dump();
     println!("{}", ir);
-    let m = Meta::new("".to_string(), vec![FakeLattice::Fake]);
+    let m = Meta::new("".to_string(), vec![Lattice0::Fake]);
     let mut interp =
-        Interpreter::<FakeIntrinsic, FakeAttribute, FakeLattice, Global>::prepare(m, &ir).unwrap();
+        Interpreter::<Intrinsic0, Attribute0, Lattice0, Global>::prepare(m, &ir).unwrap();
     interp.step(&ir);
     interp.step(&ir);
     interp.step(&ir);
@@ -78,5 +74,3 @@ fn infer_0() {
     let analysis = interp.result();
     println!("{:?}", analysis);
 }
-
-// --------------- SMOKE TEST 1 --------------- //
