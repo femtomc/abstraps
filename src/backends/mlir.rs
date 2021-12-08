@@ -199,7 +199,7 @@ impl<G> Default for MLIRBuilder<G> {
 }
 
 impl<G> MLIRBuilder<G> {
-    pub fn get_sref(&mut self, s: &str) -> MlirStringRef {
+    pub fn create_sref(&mut self, s: &str) -> MlirStringRef {
         return unsafe {
             let cstring = CString::new(s).expect("CString::new failed.");
             let sr = mlirStringRefCreateFromCString(cstring.as_ptr());
@@ -214,7 +214,7 @@ impl<G> MLIRBuilder<G> {
 
     pub fn parse_type(&mut self, s: &str) -> MlirType {
         return unsafe {
-            let sr = self.get_sref(s);
+            let sr = self.create_sref(s);
             mlirTypeParseGet(self.ctx, sr)
         };
     }
@@ -223,11 +223,11 @@ impl<G> MLIRBuilder<G> {
         return unsafe { mlirLocationUnknownGet(self.ctx) };
     }
 
-    pub fn new_module(&mut self, loc: MlirLocation) -> MlirModule {
+    pub fn create_module(&mut self, loc: MlirLocation) -> MlirModule {
         return unsafe { mlirModuleCreateEmpty(loc) };
     }
 
-    pub fn new_region(&mut self) -> MlirRegion {
+    pub fn create_region(&mut self) -> MlirRegion {
         return unsafe { mlirRegionCreate() };
     }
 
@@ -252,7 +252,7 @@ impl<G> MLIRBuilder<G> {
         }
     }
 
-    pub fn new_blk(&mut self, args: Vec<MlirType>) -> MlirBlock {
+    pub fn create_blk(&mut self, args: Vec<MlirType>) -> MlirBlock {
         let n_args = args.len() as isize;
         return unsafe { mlirBlockCreate(n_args, args.as_ptr()) };
     }
@@ -272,9 +272,9 @@ impl<G> MLIRBuilder<G> {
         }
     }
 
-    pub fn new_state(&mut self, name: &str, loc: MlirLocation) -> MlirOperationState {
+    pub fn create_state(&mut self, name: &str, loc: MlirLocation) -> MlirOperationState {
         return unsafe {
-            let s = self.get_sref(name);
+            let s = self.create_sref(name);
             mlirOperationStateGet(s, loc)
         };
     }
@@ -299,27 +299,27 @@ impl<G> MLIRBuilder<G> {
 
     pub fn get_symref_attr(&mut self, r: &str) -> MlirAttribute {
         unsafe {
-            let s = self.get_sref(r);
+            let s = self.create_sref(r);
             mlirFlatSymbolRefAttrGet(self.ctx, s)
         }
     }
 
     pub fn get_flatsymref_attr(&mut self, r: &str) -> MlirAttribute {
         unsafe {
-            let s = self.get_sref(r);
+            let s = self.create_sref(r);
             mlirFlatSymbolRefAttrGet(self.ctx, s)
         }
     }
 
     pub fn get_str_attr(&mut self, s: &str) -> MlirAttribute {
         unsafe {
-            let r = self.get_sref(s);
+            let r = self.create_sref(s);
             mlirStringAttrGet(self.ctx, r)
         }
     }
 
     pub fn get_nattr(&mut self, name: &str, attr: MlirAttribute) -> MlirNamedAttribute {
-        let s = self.get_sref(name);
+        let s = self.create_sref(name);
         let id = self.get_id(s);
         unsafe { mlirNamedAttributeGet(id, attr) }
     }
@@ -404,7 +404,7 @@ impl<G> MLIRBuilder<G> {
         }
     }
 
-    pub fn new_execution_engine(
+    pub fn create_execution_engine(
         &mut self,
         op: MlirModule,
         opt_level: i32,
@@ -464,8 +464,8 @@ impl<G> MLIRBuilder<G> {
         T: Codegen<K, Ty>,
     {
         let loc = self.get_unknown_loc();
-        let mut state = self.new_state("llvm.func", loc);
-        let region = self.new_region();
+        let mut state = self.create_state("llvm.func", loc);
+        let region = self.create_region();
         let args = argtypes
             .iter()
             .map(|x| Convert::convert(self, x))
@@ -473,7 +473,7 @@ impl<G> MLIRBuilder<G> {
         for blk in 0..ir.blocks.len() {
             match blk {
                 0 => {
-                    let entry = self.new_blk(args.clone());
+                    let entry = self.create_blk(args.clone());
                     for (ind, v) in ir.blocks[0].args.iter().enumerate() {
                         let blkind = ind as isize;
                         let arg = self.get_blk_arg(entry, blkind).unwrap();
@@ -503,7 +503,7 @@ impl<G> MLIRBuilder<G> {
                             Convert::convert(self, t)
                         })
                         .collect::<Result<Vec<_>, _>>()?;
-                    let mlirblk = self.new_blk(args);
+                    let mlirblk = self.create_blk(args);
                     for (ind, v) in ir.blocks[0].args.iter().enumerate() {
                         let blkind = ind as isize;
                         let arg = self.get_blk_arg(mlirblk, blkind).unwrap();

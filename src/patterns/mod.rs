@@ -4,5 +4,4 @@
 
 */
 
-pub mod trace;
 pub mod typeinf;

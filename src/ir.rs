@@ -8,7 +8,7 @@
 
    This IR uses parametrized basic blocks (in contrast to phi nodes).
 
-   The core of the IR is the `Instruction<T, K>` template,
+   The core of the IR is the `Instruction<I, A>` template,
    where `T` denotes the set of intrinsics (user-defined)
    and `K` denotes the set of attributes (static information
    about instructions) which is also user-defined.
@@ -32,35 +32,54 @@
 
 use alloc::string::String;
 use alloc::vec::Vec;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug)]
 pub enum IRError {
     Fallback,
 }
 
-#[derive(Clone, Debug, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Var {
-    pub id: usize,
+#[derive(Clone, Debug, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub struct Var(usize);
+
+impl Var {
+    pub fn get_id(&self) -> usize {
+        self.0
+    }
 }
 
-pub fn var(id: usize) -> Var {
-    Var { id }
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub enum Operator<I> {
+    Intrinsic(I),
+    ModuleRef(Option<String>, String),
 }
 
-#[derive(Clone, Debug)]
-pub enum Operator<T> {
-    Intrinsic(T),
-    ModuleRef(Vec<String>, String),
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Instruction<I, A> {
+    op: Operator<I>,
+    args: Vec<Var>,
+    attrs: Vec<A>,
 }
 
-#[derive(Clone, Debug)]
-pub struct Instruction<T, K> {
-    pub op: Operator<T>,
-    pub args: Vec<Var>,
-    pub attrs: Vec<K>,
+impl<I, A> Instruction<I, A> {
+    pub fn new(op: Operator<I>, args: Vec<Var>, attrs: Vec<A>) -> Instruction<I, A> {
+        Instruction { op, args, attrs }
+    }
+
+    pub fn get_op(&self) -> &Operator<I> {
+        &self.op
+    }
+
+    pub fn get_args(&self) -> &Vec<Var> {
+        &self.args
+    }
+
+    pub fn get_attrs(&self) -> &Vec<A> {
+        &self.attrs
+    }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Branch {
     cond: Option<Var>,
     block: usize,
@@ -68,8 +87,8 @@ pub struct Branch {
 }
 
 impl Branch {
-    fn get_args(&mut self) -> &mut Vec<Var> {
-        &mut self.args
+    fn get_args(&self) -> &Vec<Var> {
+        &self.args
     }
 
     fn get_block(&self) -> usize {
@@ -84,15 +103,29 @@ impl Branch {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct BasicBlock<T, K> {
-    insts: Vec<Instruction<T, K>>,
-    pub args: Vec<Var>,
-    pub branches: Vec<Branch>,
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct BasicBlock<I, A> {
+    insts: Vec<Instruction<I, A>>,
+    args: Vec<Var>,
+    branches: Vec<Branch>,
 }
 
-impl<T, K> Default for BasicBlock<T, K> {
-    fn default() -> BasicBlock<T, K> {
+impl<I, A> BasicBlock<I, A> {
+    pub fn get_insts(&self) -> &Vec<Instruction<I, A>> {
+        &self.insts
+    }
+
+    pub fn get_args(&self) -> &Vec<Var> {
+        &self.args
+    }
+
+    pub fn get_branches(&self) -> &Vec<Branch> {
+        &self.branches
+    }
+}
+
+impl<I, A> Default for BasicBlock<I, A> {
+    fn default() -> BasicBlock<I, A> {
         BasicBlock {
             insts: Vec::new(),
             args: Vec::new(),
@@ -101,22 +134,22 @@ impl<T, K> Default for BasicBlock<T, K> {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct IRLInfo {
     file: String,
     module: String,
     line: usize,
 }
 
-#[derive(Clone, Debug)]
-pub struct ExtIR<T, K> {
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ExtIR<I, A> {
     defs: Vec<(i32, i32)>,
-    blocks: Vec<BasicBlock<T, K>>,
     lines: Vec<Option<IRLInfo>>,
+    blocks: Vec<BasicBlock<I, A>>,
 }
 
-impl<T, K> Default for ExtIR<T, K> {
-    fn default() -> ExtIR<T, K> {
+impl<I, A> Default for ExtIR<I, A> {
+    fn default() -> ExtIR<I, A> {
         let entry = BasicBlock::default();
         ExtIR {
             defs: Vec::new(),
@@ -126,23 +159,21 @@ impl<T, K> Default for ExtIR<T, K> {
     }
 }
 
-impl<T, K> ExtIR<T, K> {
-    pub fn get_args(&self) -> Vec<Var> {
-        let b = &self.blocks[0];
-        b.args.to_vec()
+impl<I, A> ExtIR<I, A> {
+    pub fn get_args(&self) -> &Vec<Var> {
+        &self.blocks[0].get_args()
     }
 
     pub fn push_arg(&mut self, blk: usize) -> Var {
-        let arg = var(self.defs.len());
+        let arg = Var(self.defs.len());
         self.defs.push((blk as i32, -1));
         self.blocks[blk].args.push(arg);
         arg
     }
 
-    pub fn push_block(&mut self) -> usize {
+    pub fn push_blk(&mut self) -> usize {
         let blk = BasicBlock::default();
         self.blocks.push(blk);
-
         self.blocks.len() - 1
     }
 
@@ -172,8 +203,8 @@ impl<T, K> ExtIR<T, K> {
 
     /// Get an immutable reference to a "line" of the IR.
     /// The IR is indexed with `id` (a `Var` instance).
-    /// This returns `(Var, &Instruction<T, K>)`.
-    pub fn get_instr(&self, id: Var) -> Option<(Var, &Instruction<T, K>)> {
+    /// This returns `(Var, &Instruction<I, A>)`.
+    pub fn get_instr(&self, id: Var) -> Option<(Var, &Instruction<I, A>)> {
         match self.get_var_blockidx(id) {
             None => None,
             Some((b, i)) => {
@@ -186,8 +217,8 @@ impl<T, K> ExtIR<T, K> {
 
     /// Push an instruction onto the IR at block index `blk`.
     /// Returns a new `Var` reference to that instruction.
-    pub fn push_instr(&mut self, blk: usize, v: Instruction<T, K>) -> Var {
-        let arg = var(self.defs.len());
+    pub fn push_instr(&mut self, blk: usize, v: Instruction<I, A>) -> Var {
+        let arg = Var(self.defs.len());
         let len = self.blocks[blk].insts.len();
         let bb = &mut self.blocks[blk];
         bb.insts.push(v);
@@ -195,7 +226,7 @@ impl<T, K> ExtIR<T, K> {
         arg
     }
 
-    fn get_instr_mut(&mut self, id: Var) -> Option<(Var, &mut Instruction<T, K>)> {
+    fn get_instr_mut(&mut self, id: Var) -> Option<(Var, &mut Instruction<I, A>)> {
         match self.get_var_blockidx(id) {
             None => None,
             Some((b, i)) => {
@@ -213,13 +244,13 @@ impl<T, K> ExtIR<T, K> {
             .iter()
             .enumerate()
             .filter(|(_, v)| v.0 == (id as i32) && v.1 >= 0);
-        let mut m = v.map(|(i, l)| (var(i), l)).collect::<Vec<_>>();
+        let mut m = v.map(|(i, l)| (Var(i), l)).collect::<Vec<_>>();
         m.sort_by(|a, b| a.1.cmp(b.1));
         m.iter().map(|v| v.0).collect::<Vec<_>>()
     }
 
     /// Get an immutable iterator over basic blocks.
-    fn block_iter(&self, id: usize) -> ImmutableBlockIterator<T, K> {
+    fn block_iter(&self, id: usize) -> ImmutableBlockIterator<I, A> {
         let ks = self.get_block_vars(id);
         ImmutableBlockIterator {
             ir: self,
@@ -229,7 +260,7 @@ impl<T, K> ExtIR<T, K> {
     }
 
     /// Get a mutable iterator over basic blocks.
-    fn block_iter_mut(&mut self, id: usize) -> MutableBlockIterator<T, K> {
+    fn block_iter_mut(&mut self, id: usize) -> MutableBlockIterator<I, A> {
         let ks = self.get_block_vars(id);
         MutableBlockIterator {
             ir: self,
@@ -240,7 +271,7 @@ impl<T, K> ExtIR<T, K> {
 
     /// Get the block index and SSA index for `v: Var`.
     fn get_var_blockidx(&self, v: Var) -> Option<(usize, i32)> {
-        let (b, i) = self.defs.get(v.id).unwrap_or(&(-1, -1));
+        let (b, i) = self.defs.get(v.get_id()).unwrap_or(&(-1, -1));
         if *i < 0 {
             None
         } else {
@@ -251,7 +282,7 @@ impl<T, K> ExtIR<T, K> {
     pub fn get_vars_in_block(&self, blockidx: usize) -> Vec<Var> {
         let mut v: Vec<Var> = Vec::new();
         for ind in 0..self.defs.len() {
-            let r = Var { id: ind };
+            let r = Var(ind);
             match self.get_var_blockidx(r) {
                 None => (),
                 Some(b) => {
@@ -301,14 +332,14 @@ impl<T, K> ExtIR<T, K> {
 /////
 
 #[derive(Debug)]
-pub struct MutableBlockIterator<'b, T, K> {
-    ir: &'b mut ExtIR<T, K>,
+pub struct MutableBlockIterator<'b, I, A> {
+    ir: &'b mut ExtIR<I, A>,
     ks: Vec<Var>,
     state: usize,
 }
 
-impl<'b, T, K> Iterator for MutableBlockIterator<'b, T, K> {
-    type Item = (Var, &'b mut Instruction<T, K>);
+impl<'b, I, A> Iterator for MutableBlockIterator<'b, I, A> {
+    type Item = (Var, &'b mut Instruction<I, A>);
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.state >= self.ks.len() {
@@ -320,7 +351,7 @@ impl<'b, T, K> Iterator for MutableBlockIterator<'b, T, K> {
                 None => None,
                 Some((v, inst)) => {
                     // somewhat convinced this is required.
-                    let ptr: *mut Instruction<T, K> = inst;
+                    let ptr: *mut Instruction<I, A> = inst;
                     Some((v, unsafe { &mut *ptr }))
                 }
             }
@@ -329,14 +360,14 @@ impl<'b, T, K> Iterator for MutableBlockIterator<'b, T, K> {
 }
 
 #[derive(Debug)]
-pub struct ImmutableBlockIterator<'b, T, K> {
-    ir: &'b ExtIR<T, K>,
+pub struct ImmutableBlockIterator<'b, I, A> {
+    ir: &'b ExtIR<I, A>,
     ks: Vec<Var>,
     state: usize,
 }
 
-impl<'b, T, K> Iterator for ImmutableBlockIterator<'b, T, K> {
-    type Item = (Var, &'b Instruction<T, K>);
+impl<'b, I, A> Iterator for ImmutableBlockIterator<'b, I, A> {
+    type Item = (Var, &'b Instruction<I, A>);
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.ks.len() > self.state {
@@ -347,6 +378,19 @@ impl<'b, T, K> Iterator for ImmutableBlockIterator<'b, T, K> {
         None
     }
 }
+
+/////
+///// Verification.
+/////
+
+/*
+
+   The verification pass checks that:
+
+   1. Uses are always dominated by a def.
+   2. Basic blocks are in extended form
+
+*/
 
 /////
 ///// Lowering.
@@ -434,12 +478,10 @@ where
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Operator::Intrinsic(v) => write!(f, "{}", v),
-            Operator::ModuleRef(module, name) => {
-                for k in module.iter() {
-                    write!(f, "{}.", k)?;
-                }
-                write!(f, "@{}", name)
-            }
+            Operator::ModuleRef(module, name) => match module {
+                None => write!(f, "@{}", name),
+                Some(v) => write!(f, "{}.@{}", v, k)?,
+            },
         }
     }
 }
@@ -464,7 +506,7 @@ impl fmt::Display for Branch {
 }
 
 #[cfg(feature = "std")]
-impl<T, K> fmt::Display for Instruction<T, K>
+impl<I, A> fmt::Display for Instruction<I, A>
 where
     T: fmt::Display,
     K: fmt::Display,
@@ -496,7 +538,7 @@ where
 }
 
 #[cfg(feature = "std")]
-impl<T, K> fmt::Display for ExtIR<T, K>
+impl<I, A> fmt::Display for ExtIR<I, A>
 where
     T: fmt::Display,
     K: fmt::Display,

@@ -176,7 +176,7 @@ where
     fn prepare(meta: Self::Meta, ir: &ExtIR<I, A>) -> Result<Interpreter<Ty, G>, Self::Error> {
         let mut initial_env: BTreeMap<Var, Ty> = BTreeMap::new();
         for (t, v) in meta.ts.iter().zip(ir.get_args()) {
-            initial_env.insert(v, t.clone());
+            initial_env.insert(*v, t.clone());
         }
         let bf = BlockFrame {
             block_ptr: 0,
@@ -229,7 +229,7 @@ where
                         None => {
                             self.state = InferenceState::Error(TypeError::FailedToLookupVarInIR)
                         }
-                        Some((v, instr)) => match &instr.op {
+                        Some((v, instr)) => match instr.get_op() {
                             Operator::Intrinsic(_intr) => match Propagation::propagate(self, instr)
                             {
                                 Ok(t) => {
@@ -240,7 +240,7 @@ where
                             },
                             Operator::ModuleRef(_, n) => {
                                 match instr
-                                    .args
+                                    .get_args()
                                     .iter()
                                     .map(|x| self.frame.get(x))
                                     .collect::<Option<Vec<_>>>()
@@ -270,7 +270,7 @@ where
 
     fn result(&mut self) -> Result<TypeAnalysis<Ty>, Self::Error> {
         let mut env = self.env.iter().collect::<Vec<_>>();
-        env.sort_by(|a, b| a.0.id.partial_cmp(&b.0.id).unwrap());
+        env.sort_by(|a, b| a.0.get_id().partial_cmp(&b.0.get_id()).unwrap());
         let ts = env.iter().map(|x| x.1.clone()).collect::<Vec<_>>();
         let analysis = TypeAnalysis { ts };
         Ok(analysis)

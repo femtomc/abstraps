@@ -10,10 +10,11 @@
 
 */
 
-use crate::ir::{ExtIR, Instruction, Lowering, Var};
+use crate::ir::{ExtIR, Instruction, Lowering, Operator, Var};
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+use serde::{Serialize, Serializer};
 
 #[derive(Debug)]
 pub enum BuilderError {
@@ -21,6 +22,7 @@ pub enum BuilderError {
     Caseless,
 }
 
+#[derive(Debug)]
 pub struct ExtIRBuilder<I, A> {
     block_ptr: usize,
     varmap: BTreeMap<String, Var>,
@@ -28,20 +30,61 @@ pub struct ExtIRBuilder<I, A> {
 }
 
 impl<I, A> ExtIRBuilder<I, A> {
-    fn push_instr(&mut self, instr: Instruction<I, A>) -> Var {
+    fn set_block_ptr(&mut self, ptr: usize) {
+        self.block_ptr = ptr;
+    }
+
+    fn get_block_ptr(&self) -> usize {
+        self.block_ptr
+    }
+
+    pub fn create_instr(
+        &mut self,
+        op: Operator<I>,
+        args: Vec<Var>,
+        attrs: Vec<A>,
+    ) -> Instruction<I, A> {
+        Instruction::new(op, args, attrs)
+    }
+
+    pub fn push_instr(&mut self, instr: Instruction<I, A>) -> Var {
         self.ir.push_instr(self.block_ptr, instr)
     }
 
-    fn push_branch(&mut self, cond: Option<Var>, block: usize, args: Vec<Var>) {
+    pub fn build_instr(&mut self, op: Operator<I>, args: Vec<Var>, attrs: Vec<A>) {
+        let instr = self.create_instr(op, args, attrs);
+        self.push_instr(instr);
+    }
+
+    /// Append a new `Branch` to the current block.
+    pub fn push_branch(&mut self, cond: Option<Var>, block: usize, args: Vec<Var>) {
         self.ir.push_branch(cond, self.block_ptr, block, args)
     }
 
-    fn push_arg(&mut self) -> Var {
+    /// Append a new argument `Var` to the current block.
+    /// Return the `Var`.
+    pub fn push_arg(&mut self) -> Var {
         self.ir.push_arg(self.block_ptr)
     }
 
-    fn push_block(&mut self) -> usize {
-        self.ir.push_block()
+    /// Append a block onto the builder's IR.
+    /// Sets the builder's block pointer to the appended block.
+    /// Returns the old block pointer.
+    pub fn push_blk(&mut self) -> usize {
+        let block_ptr = self.get_block_ptr();
+        let new_ptr = self.ir.push_blk();
+        self.set_block_ptr(new_ptr);
+        return block_ptr;
+    }
+}
+
+impl<I, A> Default for ExtIRBuilder<I, A> {
+    fn default() -> ExtIRBuilder<I, A> {
+        ExtIRBuilder {
+            block_ptr: 0,
+            varmap: BTreeMap::new(),
+            ir: ExtIR::<I, A>::default(),
+        }
     }
 }
 
@@ -84,5 +127,40 @@ where
         let mut b = Lowering::<ExtIR<I, A>>::prepare_builder(self)?;
         Lowering::<ExtIR<I, A>>::build(self, &mut b)?;
         Ok(b.ir)
+    }
+}
+
+/////
+///// Serialization.
+/////
+
+impl<I, A> Serialize for ExtIRBuilder<I, A>
+where
+    I: Serialize,
+    A: Serialize,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.ir.serialize(serializer)
+    }
+}
+
+/////
+///// `std` features.
+/////
+
+#[cfg(feature = "std")]
+use std::fmt;
+
+#[cfg(feature = "std")]
+impl<I, A> fmt::Display for ExtIRBuilder<I, A>
+where
+    I: Display,
+    A: Display,
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.ir)
     }
 }
