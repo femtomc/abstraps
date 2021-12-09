@@ -1,5 +1,5 @@
 use abstraps::builder::ExtIRBuilder;
-use abstraps::interp::{Communication, Interpreter, InterpreterError, Meta, Propagation};
+use abstraps::interp::{Communication, Interpreter, LatticeJoin, Meta, Propagation};
 use abstraps::ir::{AbstractInterpreter, Instruction, Operator};
 use std::fmt;
 
@@ -36,6 +36,17 @@ pub enum ArithLattice {
     V(i64),
 }
 
+impl LatticeJoin<LatticeError> for ArithLattice {
+    fn join(&self, other: &Self) -> Result<ArithLattice, LatticeError> {
+        Ok(self.clone())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum LatticeError {
+    Fallback,
+}
+
 #[derive(Debug)]
 struct Global;
 impl Communication<Meta<ArithLattice>, ArithLattice> for Global {
@@ -44,18 +55,18 @@ impl Communication<Meta<ArithLattice>, ArithLattice> for Global {
     }
 }
 
-impl Propagation<ArithIntrinsic, ArithAttribute, ArithLattice, InterpreterError>
-    for Interpreter<ArithIntrinsic, ArithAttribute, ArithLattice, Global>
+impl Propagation<ArithIntrinsic, ArithAttribute, ArithLattice, LatticeError>
+    for Interpreter<ArithIntrinsic, ArithAttribute, ArithLattice, LatticeError, Global>
 {
     fn propagate(
         &mut self,
         instr: &Instruction<ArithIntrinsic, ArithAttribute>,
-    ) -> Result<ArithLattice, InterpreterError> {
+    ) -> Result<ArithLattice, LatticeError> {
         let v = instr
             .get_args()
             .iter()
             .map(|v| match self.get(v) {
-                None => Err(InterpreterError::FailedToLookupVarInEnv),
+                None => Err(LatticeError::Fallback),
                 Some(v) => match v {
                     ArithLattice::V(n) => Ok(n),
                 },
@@ -66,7 +77,7 @@ impl Propagation<ArithIntrinsic, ArithAttribute, ArithLattice, InterpreterError>
                 ArithIntrinsic::Add => Ok(ArithLattice::V(v.iter().sum())),
                 ArithIntrinsic::Mul => Ok(ArithLattice::V(v.iter().fold(1, |a, b| a * b))),
             },
-            Operator::ModuleRef(_, _) => Err(InterpreterError::Caseless),
+            Operator::ModuleRef(_, _) => Err(LatticeError::Fallback),
         }
     }
 }
@@ -86,8 +97,10 @@ fn arith_0() {
     let ir = builder.dump();
     let m = Meta::new("".to_string(), vec![ArithLattice::V(6), ArithLattice::V(6)]);
     let mut interp =
-        Interpreter::<ArithIntrinsic, ArithAttribute, ArithLattice, Global>::prepare(m, &ir)
-            .unwrap();
+        Interpreter::<ArithIntrinsic, ArithAttribute, ArithLattice, LatticeError, Global>::prepare(
+            m, &ir,
+        )
+        .unwrap();
     interp.step(&ir);
     interp.step(&ir);
     interp.step(&ir);

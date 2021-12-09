@@ -30,11 +30,11 @@ pub struct ExtIRBuilder<I, A> {
 }
 
 impl<I, A> ExtIRBuilder<I, A> {
-    fn set_block_ptr(&mut self, ptr: usize) {
+    pub fn set_block_ptr(&mut self, ptr: usize) {
         self.block_ptr = ptr;
     }
 
-    fn get_block_ptr(&self) -> usize {
+    pub fn get_block_ptr(&self) -> usize {
         self.block_ptr
     }
 

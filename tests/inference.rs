@@ -1,5 +1,7 @@
 use abstraps::builder::ExtIRBuilder;
-use abstraps::interp::{Communication, Interpreter, InterpreterError, Meta, Propagation};
+use abstraps::interp::{
+    Communication, Interpreter, InterpreterError, LatticeJoin, Meta, Propagation,
+};
 use abstraps::ir::{AbstractInterpreter, Instruction, Operator};
 use std::fmt;
 
@@ -35,6 +37,17 @@ pub enum Lattice0 {
     Other(String),
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub enum LatticeError0 {
+    Fake,
+}
+
+impl LatticeJoin<LatticeError0> for Lattice0 {
+    fn join(&self, other: &Self) -> Result<Lattice0, LatticeError0> {
+        Ok(self.clone())
+    }
+}
+
 #[derive(Debug)]
 struct Global;
 impl Communication<Meta<Lattice0>, Lattice0> for Global {
@@ -43,13 +56,13 @@ impl Communication<Meta<Lattice0>, Lattice0> for Global {
     }
 }
 
-impl Propagation<Intrinsic0, Attribute0, Lattice0, InterpreterError>
-    for Interpreter<Intrinsic0, Attribute0, Lattice0, Global>
+impl Propagation<Intrinsic0, Attribute0, Lattice0, LatticeError0>
+    for Interpreter<Intrinsic0, Attribute0, Lattice0, LatticeError0, Global>
 {
     fn propagate(
         &mut self,
         instr: &Instruction<Intrinsic0, Attribute0>,
-    ) -> Result<Lattice0, InterpreterError> {
+    ) -> Result<Lattice0, LatticeError0> {
         return Ok(Lattice0::Fake);
     }
 }
@@ -64,7 +77,8 @@ fn infer_0() {
     let ir = builder.dump();
     let m = Meta::new("".to_string(), vec![Lattice0::Fake]);
     let mut interp =
-        Interpreter::<Intrinsic0, Attribute0, Lattice0, Global>::prepare(m, &ir).unwrap();
+        Interpreter::<Intrinsic0, Attribute0, Lattice0, LatticeError0, Global>::prepare(m, &ir)
+            .unwrap();
     interp.step(&ir);
     interp.step(&ir);
     interp.step(&ir);

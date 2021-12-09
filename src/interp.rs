@@ -33,7 +33,7 @@ use alloc::vec::Vec;
 /////
 
 #[derive(Debug, PartialEq)]
-pub enum InterpreterError {
+pub enum InterpreterError<E> {
     FailedToPrepareInterpreter,
     FailedToResolve,
     FailedToUnify,
@@ -43,41 +43,47 @@ pub enum InterpreterError {
     FailedToLookupVarInEnv,
     FailedToLookupVarInIR,
     NotAllArgumentsResolvedInCall,
+    LatticeError(E),
     Caseless,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Meta<V> {
+    module: Option<String>,
     name: String,
     vs: Vec<V>,
 }
 
 impl<V> Meta<V> {
     pub fn new(name: String, vs: Vec<V>) -> Meta<V> {
-        Meta { name, vs }
+        Meta {
+            module: None,
+            name,
+            vs,
+        }
     }
 
     pub fn get_name(&self) -> &str {
         &self.name
     }
 
-    pub fn get_lvalues(&self) -> &[V] {
+    pub fn get_lattice_values(&self) -> &[V] {
         &self.vs
     }
 }
 
-#[derive(PartialEq, Debug)]
-pub enum InferenceState<V> {
+#[derive(Debug)]
+pub enum InterpreterState<V, E> {
     Inactive,
     Active,
     Waiting(Meta<V>),
-    Error(InterpreterError),
+    Error(InterpreterError<E>),
     Finished,
 }
 
-// This is a block typing frame.
+// This is a block interpretation frame.
 // It contains an index pointer to the block.
-// As well as a local typing environment,
+// As well as a local interpretation environment,
 // and the vector of instruction indices
 // which need to be inferred.
 #[derive(Debug)]
@@ -95,9 +101,8 @@ where
         self.block_env.get(v).cloned()
     }
 
-    fn insert(&mut self, k: &Var, v: V) -> Result<(), InterpreterError> {
+    fn insert(&mut self, k: &Var, v: V) {
         self.block_env.insert(*k, v);
-        Ok(())
     }
 }
 
@@ -122,10 +127,11 @@ where
 /// idea for "forward propagation" abstract interpretation.
 ///
 /// Here, the `Interpreter` is parametrized by:
-/// 1. M - meta information required to prepare the `Interpreter`.
-/// 2. E - the error type associated with the process of interpretation.
-/// 3. V - the type of lattice elements assignable to SSA variables.
-/// 4. G - any global state which can be used to communicate to higher-level interpretation
+/// 1. `I` - the IR intrinsics, user-defined.
+/// 2. `A` - the IR attributes (connected to `Instruction` instances, also user-defined).
+/// 3. `V` - the type of lattice elements assignable to SSA variables.
+/// 4. `E` - the error type associated with the process of interpretation.
+/// 5. `G` - any global state which can be used to communicate to higher-level interpretation
 ///    processes.
 ///
 /// The general interpreter process consists of propagating across the IR
@@ -139,9 +145,9 @@ where
 ///    resolve this itself?)
 /// 3. Does it record an IR trace of interpretation (here, `trace: Option<ExtIRBuilder<I, A>>`).
 #[derive(Debug)]
-pub struct Interpreter<I, A, V, G> {
+pub struct Interpreter<I, A, V, E, G> {
     meta: Meta<V>,
-    state: InferenceState<V>,
+    state: InterpreterState<V, E>,
     active: BlockFrame<V>,
     block_queue: VecDeque<BlockFrame<V>>,
     env: BTreeMap<Var, V>,
@@ -149,22 +155,28 @@ pub struct Interpreter<I, A, V, G> {
     global: Option<G>,
 }
 
-impl<I, A, V, G> Interpreter<I, A, V, G>
+impl<I, A, V, E, G> Interpreter<I, A, V, E, G>
 where
-    V: Clone,
+    V: Clone + LatticeJoin<E>,
 {
     pub fn get(&self, v: &Var) -> Option<V> {
         self.active.block_env.get(v).cloned()
     }
 
-    pub fn merge_insert(&mut self, k: &Var, v: V) -> Result<(), InterpreterError> {
+    pub fn merge_insert(&mut self, k: &Var, v: V) -> Result<(), InterpreterError<E>> {
         self.env.insert(*k, v);
         Ok(())
     }
 
-    pub fn merge(&mut self) -> Result<(), InterpreterError> {
+    pub fn merge(&mut self) -> Result<(), InterpreterError<E>> {
         for (k, v) in &self.active.block_env {
-            self.env.insert(*k, v.clone());
+            match self.get(k) {
+                None => self.env.insert(*k, v.clone()),
+                Some(t) => match t.join(v) {
+                    Err(e) => return Err(InterpreterError::LatticeError(e)),
+                    Ok(merged) => self.env.insert(*k, merged),
+                },
+            };
         }
         Ok(())
     }
@@ -180,18 +192,18 @@ pub trait Propagation<I, A, V, E> {
     fn propagate(&mut self, instr: &Instruction<I, A>) -> Result<V, E>;
 }
 
-/// The `BranchHandling` trait customizes how the interpreter deals with
+/// The `BranchPrepare` trait customizes how the interpreter deals with
 /// branching in the IR.
-pub trait BranchHandling<I, A> {
-    fn prepare_branch(&mut self, ir: &ExtIR<I, A>, br: &Branch) -> Result<(), InterpreterError>;
+pub trait BranchPrepare<I, A, E> {
+    fn prepare_branch(&mut self, ir: &ExtIR<I, A>, br: &Branch) -> Result<(), E>;
 }
 
-impl<I, A, V, G> BranchHandling<I, A> for Interpreter<I, A, V, G>
+impl<I, A, V, E, G> BranchPrepare<I, A, InterpreterError<E>> for Interpreter<I, A, V, E, G>
 where
-    V: Clone + std::cmp::PartialEq,
+    V: Clone + LatticeJoin<E> + std::cmp::PartialEq,
 {
     // The assumptions here need to be carefully checked .
-    fn prepare_branch(&mut self, ir: &ExtIR<I, A>, br: &Branch) -> Result<(), InterpreterError> {
+    fn prepare_branch(&mut self, ir: &ExtIR<I, A>, br: &Branch) -> Result<(), InterpreterError<E>> {
         let block_idx = br.get_block();
         let brts = br
             .get_args()
@@ -204,7 +216,7 @@ where
             .map(|v| self.get(v))
             .collect::<Option<Vec<_>>>();
         match (brts, blkts) {
-            (None, _) => Err(InterpreterError::FailedToLookupVarInEnv),
+            (None, _) => Err(InterpreterError::FailedToPrepareInterpreter),
             (Some(v1), None) => {
                 let mut frame = BlockFrame {
                     block_ptr: br.get_block(),
@@ -213,7 +225,7 @@ where
                 };
                 for (v, t) in ir.get_block_args(br.get_block()).iter().zip(v1.iter()) {
                     self.merge_insert(v, t.clone())?;
-                    frame.insert(v, t.clone())?;
+                    frame.insert(v, t.clone());
                 }
                 self.block_queue.push_back(frame);
                 Ok(())
@@ -229,6 +241,19 @@ where
     }
 }
 
+/// The `LatticeJoin` trait provides a mechanism for converging
+/// `BlockFrame` results to be joined together.
+///
+/// The interpreter will naturally encountered "join points"
+/// in natural loops - this trait provides customization for how
+/// joining occurs on lattices with lattice type `V`.
+pub trait LatticeJoin<E>
+where
+    Self: Sized,
+{
+    fn join(&self, other: &Self) -> Result<Self, E>;
+}
+
 /// The `Communication` trait provides a mechanism for interpreters
 /// to synchronize across some global state `G`
 /// (as part of higher-level inference processes).
@@ -236,7 +261,7 @@ pub trait Communication<M, R> {
     fn ask(&self, msg: &M) -> Option<R>;
 }
 
-impl<I, A, M, R, V, G> Communication<M, R> for Interpreter<I, A, V, G>
+impl<I, A, M, R, V, E, G> Communication<M, R> for Interpreter<I, A, V, E, G>
 where
     G: Communication<M, R>,
 {
@@ -248,22 +273,25 @@ where
     }
 }
 
-impl<I, A, G, V> AbstractInterpreter<ExtIR<I, A>, Analysis<V>> for Interpreter<I, A, V, G>
+impl<I, A, V, E, G> AbstractInterpreter<ExtIR<I, A>, Analysis<V>> for Interpreter<I, A, V, E, G>
 where
-    V: Clone + std::cmp::PartialEq,
+    V: Clone + LatticeJoin<E> + std::cmp::PartialEq,
     G: Communication<Meta<V>, V>,
-    Self: Propagation<I, A, V, InterpreterError>,
+    Self: Propagation<I, A, V, E>,
 {
     type LatticeElement = V;
-    type Error = InterpreterError;
+    type Error = InterpreterError<E>;
     type Meta = Meta<V>;
 
-    fn prepare(meta: Self::Meta, ir: &ExtIR<I, A>) -> Result<Interpreter<I, A, V, G>, Self::Error> {
-        if ir.get_args().len() != meta.get_lvalues().len() {
+    fn prepare(
+        meta: Self::Meta,
+        ir: &ExtIR<I, A>,
+    ) -> Result<Interpreter<I, A, V, E, G>, Self::Error> {
+        if ir.get_args().len() != meta.get_lattice_values().len() {
             return Err(InterpreterError::FailedToPrepareInterpreter);
         }
         let mut initial_env: BTreeMap<Var, V> = BTreeMap::new();
-        for (t, v) in meta.get_lvalues().iter().zip(ir.get_args()) {
+        for (t, v) in meta.get_lattice_values().iter().zip(ir.get_args()) {
             initial_env.insert(*v, t.clone());
         }
         let bf = BlockFrame {
@@ -276,7 +304,7 @@ where
             meta,
             active: bf,
             block_queue: vd,
-            state: InferenceState::Active,
+            state: InterpreterState::Active,
             env: BTreeMap::<Var, V>::new(),
             trace: None,
             global: None,
@@ -285,7 +313,7 @@ where
 
     fn step(&mut self, ir: &ExtIR<I, A>) -> Result<(), Self::Error> {
         match &self.state {
-            InferenceState::Waiting(tsig) => {
+            InterpreterState::Waiting(tsig) => {
                 // This should never panic.
                 let v = self.active.lines.pop_front().unwrap();
                 match &self.global {
@@ -294,25 +322,28 @@ where
                         None => (),
                         Some(t) => {
                             self.active.block_env.insert(v, t);
-                            self.state = InferenceState::Active;
+                            self.state = InterpreterState::Active;
                         }
                     },
                 }
             }
 
-            InferenceState::Active => {
+            InterpreterState::Active => {
                 let v = self.active.lines.pop_front();
                 match v {
                     None => {
                         self.merge()?;
                         for br in ir.get_branches(self.active.block_ptr) {
                             self.prepare_branch(ir, br)?;
+                            if !br.is_conditional() {
+                                break;
+                            }
                         }
                         match self.block_queue.pop_front() {
-                            None => self.state = InferenceState::Finished,
+                            None => self.state = InterpreterState::Finished,
                             Some(blk) => {
                                 self.active = blk;
-                                self.state = InferenceState::Active;
+                                self.state = InterpreterState::Active;
                             }
                         }
                     }
@@ -320,17 +351,20 @@ where
                     Some(el) => match ir.get_instr(el) {
                         None => {
                             self.state =
-                                InferenceState::Error(InterpreterError::FailedToLookupVarInIR)
+                                InterpreterState::Error(InterpreterError::FailedToLookupVarInEnv)
                         }
                         Some((v, instr)) => match instr.get_op() {
                             Operator::Intrinsic(_intr) => match self.propagate(instr) {
                                 Ok(t) => {
                                     self.active.block_env.insert(v, t);
-                                    self.state = InferenceState::Active;
+                                    self.state = InterpreterState::Active;
                                 }
-                                Err(e) => self.state = InferenceState::Error(e),
+                                Err(e) => {
+                                    self.state =
+                                        InterpreterState::Error(InterpreterError::LatticeError(e))
+                                }
                             },
-                            Operator::ModuleRef(_, n) => {
+                            Operator::ModuleRef(module, n) => {
                                 match instr
                                     .get_args()
                                     .iter()
@@ -338,13 +372,14 @@ where
                                     .collect::<Option<Vec<_>>>()
                                 {
                                     None => {
-                                        self.state = InferenceState::Error(
+                                        self.state = InterpreterState::Error(
                                             InterpreterError::NotAllArgumentsResolvedInCall,
-                                        );
+                                        )
                                     }
                                     Some(vs) => {
                                         self.active.lines.push_front(v);
-                                        self.state = InferenceState::Waiting(Meta {
+                                        self.state = InterpreterState::Waiting(Meta {
+                                            module: module.clone(),
                                             name: n.to_string(),
                                             vs,
                                         });
