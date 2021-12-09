@@ -1,7 +1,8 @@
 # abstraps
 
-[![crates.io](https://img.shields.io/crates/v/abstraps.svg)](https://crates.io/crates/abstraps)
-[![CI](https://github.com/femtomc/abstraps/workflows/CI/badge.svg)](https://github.com/femtomc/abstraps/actions?query=workflow%3ACI)
+[![CI](https://img.shields.io/github/workflow/status/femtomc/abstraps/CI?style=for-the-badge)](https://github.com/femtomc/abstraps/actions?query=workflow%3ACI)
+[![crates.io](https://img.shields.io/crates/v/abstraps?style=for-the-badge)](https://crates.io/crates/abstraps)
+[![docs.rs](https://img.shields.io/docsrs/abstraps?style=for-the-badge)](https://docs.rs/abstraps/latest/abstraps/)
 
 > Extensible compiler middle layer with abstract interpreters.
 
