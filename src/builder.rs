@@ -1,6 +1,4 @@
-/*
-
-   This file is part of `abstraps`. License is MIT.
+/*!
 
    The builder design in this module
    supports code generation to the `abstraps` IR.
@@ -8,7 +6,7 @@
    The interfaces provided below allow customized code generation
    for user-defined intrinsics and lowering.
 
-*/
+!*/
 
 use crate::ir::{ExtIR, Instruction, Lowering, Operator, Var};
 use alloc::collections::BTreeMap;
@@ -84,6 +82,10 @@ impl<I, A> ExtIRBuilder<I, A> {
         let block_args = args.iter().map(|_| self.push_arg()).collect();
         self.ir.push_branch(None, block_ptr, new_ptr, args);
         block_args
+    }
+
+    pub fn get_ir(&self) -> &ExtIR<I, A> {
+        &self.ir
     }
 
     /// Returns the IR (and ownership of the IR).

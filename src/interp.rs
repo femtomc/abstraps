@@ -1,11 +1,10 @@
-/*
+/*!
 
-   This file is part of `abstraps`. License is MIT.
-
-   An interpreter for abstract interpretation via forward propagation.
+   An interpreter which implements lattice interpretation
+   via forward propagation.
 
    Exposes the interface `Propagation` for users to
-   customize the abstract interpretation process.
+   customize the interpretation process.
 
    The interpreter keeps a state machine
    representation of the local process,
@@ -18,7 +17,7 @@
    so that local interpreters can read from global inference state
    (e.g. as provided by a module-level interpreter, c.f. above)
 
-*/
+!*/
 
 use crate::builder::ExtIRBuilder;
 use crate::ir::{AbstractInterpreter, Branch, ExtIR, Instruction, Operator, Var};
@@ -43,6 +42,7 @@ pub enum InterpreterError<E> {
     FailedToLookupVarInEnv,
     FailedToLookupVarInIR,
     NotAllArgumentsResolvedInCall,
+    TriedToFinishWhenInterpreterNotFinished,
     LatticeError(E),
     Caseless,
 }
@@ -106,15 +106,17 @@ where
     }
 }
 
-// This is the packaged up form of analysis
-// which the interpreter returns after working
-// on a particular method specialization.
+/// This is the packaged up form of analysis
+/// which the interpreter returns after working
+/// on a particular operation.
 #[derive(Debug)]
-pub struct Analysis<V> {
+pub struct InterpreterFrame<C, I, A, V> {
     vs: Vec<V>,
+    analysis: Option<C>,
+    trace: Option<ExtIR<I, A>>,
 }
 
-impl<V> Analysis<V>
+impl<C, I, A, V> InterpreterFrame<C, I, A, V>
 where
     V: Clone,
 {
@@ -127,6 +129,8 @@ where
 /// idea for "forward propagation" abstract interpretation.
 ///
 /// Here, the `Interpreter` is parametrized by:
+/// 0. `C` - any analysis state (for example, if the interpreter
+/// is used to compute dependency flow analysis information).
 /// 1. `I` - the IR intrinsics, user-defined.
 /// 2. `A` - the IR attributes (connected to `Instruction` instances, also user-defined).
 /// 3. `V` - the type of lattice elements assignable to SSA variables.
@@ -145,20 +149,25 @@ where
 ///    resolve this itself?)
 /// 3. Does it record an IR trace of interpretation (here, `trace: Option<ExtIRBuilder<I, A>>`).
 #[derive(Debug)]
-pub struct Interpreter<I, A, V, E, G> {
+pub struct Interpreter<C, I, A, V, E, G> {
     meta: Meta<V>,
     state: InterpreterState<V, E>,
     active: BlockFrame<V>,
     block_queue: VecDeque<BlockFrame<V>>,
     env: BTreeMap<Var, V>,
+    analysis: Option<C>,
     trace: Option<ExtIRBuilder<I, A>>,
     global: Option<G>,
 }
 
-impl<I, A, V, E, G> Interpreter<I, A, V, E, G>
+impl<C, I, A, V, E, G> Interpreter<C, I, A, V, E, G>
 where
     V: Clone + LatticeJoin<E>,
 {
+    pub fn set_analysis(&mut self, v: Option<C>) {
+        self.analysis = v;
+    }
+
     pub fn get(&self, v: &Var) -> Option<V> {
         self.active.block_env.get(v).cloned()
     }
@@ -189,7 +198,7 @@ where
 /// The `Propagation` trait provides a way for the interpreter to
 /// evaluate the effects of an IR instruction on the lattice with lattice element type `V`.
 pub trait Propagation<I, A, V, E> {
-    fn propagate(&mut self, instr: &Instruction<I, A>) -> Result<V, E>;
+    fn propagate(&mut self, v: Var, instr: &Instruction<I, A>) -> Result<V, E>;
 }
 
 /// The `BranchPrepare` trait customizes how the interpreter deals with
@@ -198,7 +207,7 @@ pub trait BranchPrepare<I, A, E> {
     fn prepare_branch(&mut self, ir: &ExtIR<I, A>, br: &Branch) -> Result<(), E>;
 }
 
-impl<I, A, V, E, G> BranchPrepare<I, A, InterpreterError<E>> for Interpreter<I, A, V, E, G>
+impl<C, I, A, V, E, G> BranchPrepare<I, A, InterpreterError<E>> for Interpreter<C, I, A, V, E, G>
 where
     V: Clone + LatticeJoin<E> + std::cmp::PartialEq,
 {
@@ -234,7 +243,27 @@ where
                 if v1 == v2 {
                     Ok(())
                 } else {
-                    Err(InterpreterError::Caseless)
+                    let joined = v1
+                        .iter()
+                        .zip(v2.iter())
+                        .map(|(a, b)| a.join(b))
+                        .collect::<Result<Vec<_>, _>>();
+                    match joined {
+                        Err(e) => Err(InterpreterError::LatticeError(e)),
+                        Ok(v3) => {
+                            let mut frame = BlockFrame {
+                                block_ptr: br.get_block(),
+                                block_env: BTreeMap::new(),
+                                lines: VecDeque::from(ir.get_vars_in_block(br.get_block())),
+                            };
+                            for (v, t) in ir.get_block_args(br.get_block()).iter().zip(v3.iter()) {
+                                self.merge_insert(v, t.clone())?;
+                                frame.insert(v, t.clone());
+                            }
+                            self.block_queue.push_back(frame);
+                            Ok(())
+                        }
+                    }
                 }
             }
         }
@@ -261,7 +290,7 @@ pub trait Communication<M, R> {
     fn ask(&self, msg: &M) -> Option<R>;
 }
 
-impl<I, A, M, R, V, E, G> Communication<M, R> for Interpreter<I, A, V, E, G>
+impl<C, I, A, M, R, V, E, G> Communication<M, R> for Interpreter<C, I, A, V, E, G>
 where
     G: Communication<M, R>,
 {
@@ -273,7 +302,8 @@ where
     }
 }
 
-impl<I, A, V, E, G> AbstractInterpreter<ExtIR<I, A>, Analysis<V>> for Interpreter<I, A, V, E, G>
+impl<C, I, A, V, E, G> AbstractInterpreter<ExtIR<I, A>, InterpreterFrame<C, I, A, V>>
+    for Interpreter<C, I, A, V, E, G>
 where
     V: Clone + LatticeJoin<E> + std::cmp::PartialEq,
     G: Communication<Meta<V>, V>,
@@ -286,7 +316,7 @@ where
     fn prepare(
         meta: Self::Meta,
         ir: &ExtIR<I, A>,
-    ) -> Result<Interpreter<I, A, V, E, G>, Self::Error> {
+    ) -> Result<Interpreter<C, I, A, V, E, G>, Self::Error> {
         if ir.get_args().len() != meta.get_lattice_values().len() {
             return Err(InterpreterError::FailedToPrepareInterpreter);
         }
@@ -306,6 +336,7 @@ where
             block_queue: vd,
             state: InterpreterState::Active,
             env: BTreeMap::<Var, V>::new(),
+            analysis: None,
             trace: None,
             global: None,
         })
@@ -354,7 +385,7 @@ where
                                 InterpreterState::Error(InterpreterError::FailedToLookupVarInEnv)
                         }
                         Some((v, instr)) => match instr.get_op() {
-                            Operator::Intrinsic(_intr) => match self.propagate(instr) {
+                            Operator::Intrinsic(_intr) => match self.propagate(v, instr) {
                                 Ok(t) => {
                                     self.active.block_env.insert(v, t);
                                     self.state = InterpreterState::Active;
@@ -395,12 +426,63 @@ where
         Ok(())
     }
 
-    fn result(&mut self) -> Result<Analysis<V>, Self::Error> {
+    /// `finish` the interpreter -- producing an `InterpreterFrame` which
+    /// contains analysis, a potential IR trace (if the interpreter is
+    /// used for partial evaluation), and a lattice map.
+    ///
+    /// Resets the `trace` and `analysis` fields of the interpreter
+    /// to `None`.
+    ///
+    /// Calling this function will produce an error value
+    /// if the interpreter does not have
+    /// `self.state == InterpreterState::Finished`.
+    fn finish(&mut self) -> Result<InterpreterFrame<C, I, A, V>, Self::Error> {
+        match self.state {
+            InterpreterState::Finished => {
+                let mut env = self.env.iter().collect::<Vec<_>>();
+                env.sort_by(|a, b| a.0.get_id().partial_cmp(&b.0.get_id()).unwrap());
+                let vs = env.iter().map(|x| x.1.clone()).collect::<Vec<_>>();
+                let trace = self.trace.take().map(|v| v.dump());
+                let analysis = self.analysis.take();
+                let frame = InterpreterFrame {
+                    vs,
+                    analysis,
+                    trace,
+                };
+                Ok(frame)
+            }
+            _ => Err(InterpreterError::TriedToFinishWhenInterpreterNotFinished),
+        }
+    }
+}
+
+impl<C, I, A, V, E, G> Interpreter<C, I, A, V, E, G>
+where
+    C: Clone,
+    I: Clone,
+    A: Clone,
+    V: Clone + LatticeJoin<E>,
+{
+    /// This function explicitly allocates to produce an intermediate
+    /// (i.e. in the middle of an interpretation process) result frame.
+    ///
+    /// It _does not_ reset the internal state of the interpreter.
+    /// It can be used to safely observe the interpreter during
+    /// non-finished states.
+    pub fn get_intermediate_frame(
+        &self,
+    ) -> Result<InterpreterFrame<C, I, A, V>, InterpreterError<E>> {
         let mut env = self.env.iter().collect::<Vec<_>>();
         env.sort_by(|a, b| a.0.get_id().partial_cmp(&b.0.get_id()).unwrap());
         let vs = env.iter().map(|x| x.1.clone()).collect::<Vec<_>>();
-        let analysis = Analysis { vs };
-        Ok(analysis)
+        let trace = self.trace.as_ref().map(|v| v.get_ir().clone());
+        let analysis = self.analysis.clone();
+        let frame = InterpreterFrame {
+            vs,
+            analysis,
+            trace,
+        };
+        Ok(frame)
     }
 }
 
@@ -429,15 +511,26 @@ where
     }
 }
 
-impl<V> fmt::Display for Analysis<V>
+impl<C, I, A, V> fmt::Display for InterpreterFrame<C, I, A, V>
 where
+    C: fmt::Display,
+    I: fmt::Display,
+    A: fmt::Display,
     V: fmt::Display,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        writeln!(f, "Analysis:")?;
+        writeln!(f, "Frame:")?;
         for (ind, t) in self.vs.iter().enumerate() {
-            write!(indented(f), "%{} :: {}", ind, t)?;
+            write!(indented(f), "%{} :: {}\n", ind, t)?;
         }
+        match &self.trace {
+            None => Ok(()),
+            Some(tr) => write!(f, "{}", tr),
+        }?;
+        match &self.analysis {
+            None => Ok(()),
+            Some(c) => write!(f, "{}", c),
+        }?;
         Ok(())
     }
 }

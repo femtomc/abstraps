@@ -1,13 +1,14 @@
 use abstraps::builder::ExtIRBuilder;
 use abstraps::interp::{Communication, Interpreter, LatticeJoin, Meta, Propagation};
-use abstraps::ir::{AbstractInterpreter, Instruction, Operator};
+use abstraps::ir::{AbstractInterpreter, Instruction, Operator, Var};
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 
 // --------------- Arithmetic example --------------- //
 
 // Fully specify the interpreter interface.
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ArithIntrinsic {
     Add,
     Mul,
@@ -22,7 +23,7 @@ impl fmt::Display for ArithIntrinsic {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ArithAttribute;
 
 impl fmt::Display for ArithAttribute {
@@ -36,6 +37,14 @@ pub enum ArithLattice {
     V(i64),
 }
 
+impl fmt::Display for ArithLattice {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            ArithLattice::V(v) => write!(f, "{}", v),
+        }
+    }
+}
+
 impl LatticeJoin<LatticeError> for ArithLattice {
     fn join(&self, other: &Self) -> Result<ArithLattice, LatticeError> {
         Ok(self.clone())
@@ -47,7 +56,7 @@ pub enum LatticeError {
     Fallback,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Global;
 impl Communication<Meta<ArithLattice>, ArithLattice> for Global {
     fn ask(&self, msg: &Meta<ArithLattice>) -> Option<ArithLattice> {
@@ -56,10 +65,11 @@ impl Communication<Meta<ArithLattice>, ArithLattice> for Global {
 }
 
 impl Propagation<ArithIntrinsic, ArithAttribute, ArithLattice, LatticeError>
-    for Interpreter<ArithIntrinsic, ArithAttribute, ArithLattice, LatticeError, Global>
+    for Interpreter<Global, ArithIntrinsic, ArithAttribute, ArithLattice, LatticeError, Global>
 {
     fn propagate(
         &mut self,
+        curr: Var,
         instr: &Instruction<ArithIntrinsic, ArithAttribute>,
     ) -> Result<ArithLattice, LatticeError> {
         let v = instr
@@ -93,19 +103,27 @@ fn arith_0() {
         Vec::new(),
     );
     let args = builder.jump_blk(vec![v1, v2, v3]);
-    builder.build_instr(Operator::Intrinsic(ArithIntrinsic::Mul), args, Vec::new());
+    let v4 = builder.build_instr(Operator::Intrinsic(ArithIntrinsic::Mul), args, Vec::new());
+    builder.push_branch(None, builder.get_block_ptr(), vec![v4, v4, v4]);
     let ir = builder.dump();
     let m = Meta::new("".to_string(), vec![ArithLattice::V(6), ArithLattice::V(6)]);
-    let mut interp =
-        Interpreter::<ArithIntrinsic, ArithAttribute, ArithLattice, LatticeError, Global>::prepare(
-            m, &ir,
-        )
-        .unwrap();
+    let mut interp = Interpreter::<
+        Global,
+        ArithIntrinsic,
+        ArithAttribute,
+        ArithLattice,
+        LatticeError,
+        Global,
+    >::prepare(m, &ir)
+    .unwrap();
     interp.step(&ir);
     interp.step(&ir);
     interp.step(&ir);
     interp.step(&ir);
-    let analysis = interp.result();
-    let v = analysis.unwrap().get_ret().unwrap();
+    interp.step(&ir);
+    let analysis = interp.get_intermediate_frame().unwrap();
+    println!("{}", ir);
+    println!("{:?}", analysis);
+    let v = analysis.get_ret().unwrap();
     assert_eq!(v, ArithLattice::V(432))
 }

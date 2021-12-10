@@ -2,7 +2,7 @@ use abstraps::builder::ExtIRBuilder;
 use abstraps::interp::{
     Communication, Interpreter, InterpreterError, LatticeJoin, Meta, Propagation,
 };
-use abstraps::ir::{AbstractInterpreter, Instruction, Operator};
+use abstraps::ir::{AbstractInterpreter, Instruction, Operator, Var};
 use std::fmt;
 
 // --------------- Smoke test --------------- //
@@ -57,10 +57,11 @@ impl Communication<Meta<Lattice0>, Lattice0> for Global {
 }
 
 impl Propagation<Intrinsic0, Attribute0, Lattice0, LatticeError0>
-    for Interpreter<Intrinsic0, Attribute0, Lattice0, LatticeError0, Global>
+    for Interpreter<Global, Intrinsic0, Attribute0, Lattice0, LatticeError0, Global>
 {
     fn propagate(
         &mut self,
+        curr: Var,
         instr: &Instruction<Intrinsic0, Attribute0>,
     ) -> Result<Lattice0, LatticeError0> {
         return Ok(Lattice0::Fake);
@@ -77,11 +78,13 @@ fn infer_0() {
     let ir = builder.dump();
     let m = Meta::new("".to_string(), vec![Lattice0::Fake]);
     let mut interp =
-        Interpreter::<Intrinsic0, Attribute0, Lattice0, LatticeError0, Global>::prepare(m, &ir)
-            .unwrap();
+        Interpreter::<Global, Intrinsic0, Attribute0, Lattice0, LatticeError0, Global>::prepare(
+            m, &ir,
+        )
+        .unwrap();
     interp.step(&ir);
     interp.step(&ir);
     interp.step(&ir);
     interp.step(&ir);
-    let analysis = interp.result();
+    let analysis = interp.finish();
 }
