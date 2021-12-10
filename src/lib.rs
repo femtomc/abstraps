@@ -4,14 +4,14 @@
 
 */
 
-#[doc = include_str!("../README.md")]
-#![warn(missing_docs)]
+#![doc = include_str!("../README.md")]
 #![allow(dead_code)]
-
-#[macro_use]
-extern crate alloc;
+#![warn(missing_docs)]
 
 pub mod backends;
 pub mod builder;
 pub mod interp;
 pub mod ir;
+
+#[macro_use]
+extern crate alloc;
