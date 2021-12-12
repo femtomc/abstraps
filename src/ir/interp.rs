@@ -17,10 +17,10 @@
    so that local interpreters can read from global inference state
    (e.g. as provided by a module-level interpreter, c.f. above)
 
-!*/
+*/
 
-use crate::builder::ExtIRBuilder;
-use crate::ir::{AbstractInterpreter, Branch, ExtIR, Instruction, Operator, Var};
+use crate::builder::OperationBuilder;
+use crate::ir::{AbstractInterpreter, Branch, Operation, Var};
 use alloc::collections::vec_deque::VecDeque;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
@@ -113,7 +113,7 @@ where
 pub struct InterpreterFrame<C, I, A, V> {
     vs: Vec<V>,
     analysis: Option<C>,
-    trace: Option<ExtIR<I, A>>,
+    trace: Option<Operation<I, A>>,
 }
 
 impl<C, I, A, V> InterpreterFrame<C, I, A, V>
@@ -132,7 +132,7 @@ where
 /// 0. `C` - any analysis state (for example, if the interpreter
 /// is used to compute dependency flow analysis information).
 /// 1. `I` - the IR intrinsics, user-defined.
-/// 2. `A` - the IR attributes (connected to `Instruction` instances, also user-defined).
+/// 2. `A` - the IR attributes (connected to `Operation` instances, also user-defined).
 /// 3. `V` - the type of lattice elements assignable to SSA variables.
 /// 4. `E` - the error type associated with the process of interpretation.
 /// 5. `G` - any global state which can be used to communicate to higher-level interpretation
@@ -147,7 +147,7 @@ where
 /// 1. It encounters a branch (e.g. does it follow all branches, or try to pre-evaluate and skip?)
 /// 2. It encounters a call to a module-scope function (e.g. how does it communicate this or try to
 ///    resolve this itself?)
-/// 3. Does it record an IR trace of interpretation (here, `trace: Option<ExtIRBuilder<I, A>>`).
+/// 3. Does it record an IR trace of interpretation (here, `trace: Option<OperationBuilder<I, A>>`).
 #[derive(Debug)]
 pub struct Interpreter<C, I, A, V, E, G> {
     meta: Meta<V>,
@@ -156,7 +156,7 @@ pub struct Interpreter<C, I, A, V, E, G> {
     block_queue: VecDeque<BlockFrame<V>>,
     env: BTreeMap<Var, V>,
     analysis: Option<C>,
-    trace: Option<ExtIRBuilder<I, A>>,
+    trace: Option<OperationBuilder<I, A>>,
     global: Option<G>,
 }
 
@@ -198,13 +198,13 @@ where
 /// The `Propagation` trait provides a way for the interpreter to
 /// evaluate the effects of an IR instruction on the lattice with lattice element type `V`.
 pub trait Propagation<I, A, V, E> {
-    fn propagate(&mut self, v: Var, instr: &Instruction<I, A>) -> Result<V, E>;
+    fn propagate(&mut self, v: Var, instr: &Operation<I, A>) -> Result<V, E>;
 }
 
 /// The `BranchPrepare` trait customizes how the interpreter deals with
 /// branching in the IR.
 pub trait BranchPrepare<I, A, E> {
-    fn prepare_branch(&mut self, ir: &ExtIR<I, A>, br: &Branch) -> Result<(), E>;
+    fn prepare_branch(&mut self, ir: &Operation<I, A>, br: &Branch) -> Result<(), E>;
 }
 
 impl<C, I, A, V, E, G> BranchPrepare<I, A, InterpreterError<E>> for Interpreter<C, I, A, V, E, G>
@@ -212,7 +212,11 @@ where
     V: Clone + LatticeJoin<E> + std::cmp::PartialEq,
 {
     // The assumptions here need to be carefully checked .
-    fn prepare_branch(&mut self, ir: &ExtIR<I, A>, br: &Branch) -> Result<(), InterpreterError<E>> {
+    fn prepare_branch(
+        &mut self,
+        ir: &Operation<I, A>,
+        br: &Branch,
+    ) -> Result<(), InterpreterError<E>> {
         let block_idx = br.get_block();
         let brts = br
             .get_args()
@@ -302,7 +306,7 @@ where
     }
 }
 
-impl<C, I, A, V, E, G> AbstractInterpreter<ExtIR<I, A>, InterpreterFrame<C, I, A, V>>
+impl<C, I, A, V, E, G> AbstractInterpreter<Operation<I, A>, InterpreterFrame<C, I, A, V>>
     for Interpreter<C, I, A, V, E, G>
 where
     V: Clone + LatticeJoin<E> + std::cmp::PartialEq,
@@ -315,7 +319,7 @@ where
 
     fn prepare(
         meta: Self::Meta,
-        ir: &ExtIR<I, A>,
+        ir: &Operation<I, A>,
     ) -> Result<Interpreter<C, I, A, V, E, G>, Self::Error> {
         if ir.get_args().len() != meta.get_lattice_values().len() {
             return Err(InterpreterError::FailedToPrepareInterpreter);
@@ -342,7 +346,7 @@ where
         })
     }
 
-    fn step(&mut self, ir: &ExtIR<I, A>) -> Result<(), Self::Error> {
+    fn step(&mut self, ir: &Operation<I, A>) -> Result<(), Self::Error> {
         match &self.state {
             InterpreterState::Waiting(tsig) => {
                 // This should never panic.
