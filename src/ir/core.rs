@@ -7,10 +7,7 @@
 
   This IR uses parametrized basic blocks (in contrast to phi nodes).
 
-  The core of the IR is the `Operation<I, A>` template,
-  where `I` denotes the set of intrinsics (user-defined)
-  and `A` denotes the set of attributes (static information
-  about operations) which is also user-defined.
+  The core of the IR is the `Operation` template.
 
   This reflects inspiration from the extensible design of MLIR,
   (but conversion between "intrinsic dialects" is out of scope)
@@ -29,8 +26,8 @@
 
 */
 
-use crate::ir::graph::Graph;
-use crate::ir::ssacfg::SSACFG;
+//use crate::ir::graph::Graph;
+//use crate::ir::ssacfg::SSACFG;
 use alloc::string::String;
 use alloc::vec::Vec;
 use anyhow;
@@ -71,197 +68,50 @@ impl fmt::Display for Var {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Operation<I, A> {
-    intr: I,
-    args: Vec<Var>,
-    attrs: HashMap<String, A>,
-    regions: Vec<Region<I, A>>,
-    successors: Vec<BasicBlock<I, A>>,
-}
-
-impl<I, A> Operation<I, A> {
-    pub fn new(
-        intr: I,
-        args: Vec<Var>,
-        attrs: HashMap<String, A>,
-        regions: Vec<Region<I, A>>,
-        successors: Vec<BasicBlock<I, A>>,
-    ) -> Operation<I, A> {
-        Operation {
-            intr,
-            args,
-            attrs,
-            regions,
-            successors,
-        }
-    }
-
-    pub fn get_intrinsic(&self) -> &I {
-        &self.intr
-    }
-
-    pub fn get_args(&self) -> &[Var] {
-        &self.args
-    }
-
-    pub fn get_attr(&self, key: &str) -> Option<&A> {
-        self.attrs.get(key)
-    }
-
-    pub fn get_attrs(&self) -> &HashMap<String, A> {
-        &self.attrs
-    }
-
-    pub fn get_regions(&self) -> &[Region<I, A>] {
-        &self.regions
-    }
-
-    pub fn get_successors(&self) -> &[BasicBlock<I, A>] {
-        &self.successors
-    }
-}
-
-impl<I1, A1> Operation<I1, A1> {
-    pub fn pass<R>(&self, f: &dyn Fn(&Operation<I1, A1>) -> R, accum: &dyn Fn(Vec<R>) -> R) -> R {
-        let s = accum(
-            self.successors
-                .iter()
-                .map(|s| s.pass(f, accum))
-                .collect::<Vec<_>>(),
-        );
-        let r = accum(
-            self.regions
-                .iter()
-                .map(|r| r.pass(f, accum))
-                .collect::<Vec<_>>(),
-        );
-        return accum(vec![f(self), s, r]);
-    }
-
-    pub fn bifmap<I2, A2>(
-        mut self,
-        fintr: &dyn Fn(I1) -> I2,
-        fattr: &dyn Fn(A1) -> A2,
-    ) -> Operation<I2, A2> {
-        let intr = fintr(self.intr);
-        let attrs = self
-            .attrs
-            .drain()
-            .map(|(k, v)| (k, fattr(v)))
-            .collect::<HashMap<_, _>>();
-        let regions = self
-            .regions
-            .into_iter()
-            .map(|r| r.bifmap(fintr, fattr))
-            .collect::<Vec<Region<_, _>>>();
-        let successors = self
-            .successors
-            .into_iter()
-            .map(|s| s.bifmap(fintr, fattr))
-            .collect::<Vec<BasicBlock<_, _>>>();
-        Operation::<I2, A2>::new(intr, self.args, attrs, regions, successors)
-    }
-}
-
-impl<I, A> fmt::Display for Operation<I, A>
+pub trait Intrinsic
 where
-    I: fmt::Display,
-    A: fmt::Display,
+    Self: std::fmt::Debug,
 {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.intr)?;
-        if !self.args.is_empty() {
-            write!(f, "(")?;
-            let l = self.args.len();
-            for (ind, arg) in self.args.iter().enumerate() {
-                match l - 1 == ind {
-                    true => write!(f, "{}", arg)?,
-                    _ => write!(f, "{}, ", arg)?,
-                };
-            }
-            write!(f, ")")?;
-        }
-        if !self.attrs.is_empty() {
-            write!(f, " {{ ")?;
-            let l = self.attrs.len();
-            for (ind, attr) in self.attrs.iter().enumerate() {
-                match l - 1 == ind {
-                    true => write!(f, "{} = {}", attr.0, attr.1)?,
-                    _ => write!(f, "{} = {}, ", attr.0, attr.1)?,
-                };
-            }
-            write!(f, " }}")?;
-        }
-        if !self.regions.is_empty() {
-            for r in self.regions.iter() {
-                write!(f, " {{\n")?;
-                write!(indented(f).with_str("  "), "{}", r)?;
-                write!(f, "}}")?;
-            }
-        }
-        Ok(())
-    }
+    fn get_namespace(&self) -> &str;
+    fn get_name(&self) -> &str;
+    fn get_traits(&self) -> Vec<Box<dyn OperationTrait>>;
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct BasicBlock<I, A> {
+pub trait OperationTrait
+where
+    Self: std::fmt::Debug,
+{
+    fn verify(&self, op: &Operation) -> anyhow::Result<()>;
+}
+
+pub trait AttributeValue
+where
+    Self: std::fmt::Debug,
+{
+}
+
+impl<T> AttributeValue for T where T: std::fmt::Debug {}
+
+pub trait Attribute
+where
+    Self: std::fmt::Debug,
+{
+    fn get_value<T>(&self) -> Box<T>;
+}
+
+#[derive(Debug)]
+pub struct Operation {
+    intr: Box<dyn Intrinsic>,
     args: Vec<Var>,
-    ops: Vec<Operation<I, A>>,
+    attrs: HashMap<String, Box<dyn Attribute>>,
+    regions: Vec<Region>,
+    successors: Vec<BasicBlock>,
 }
 
-impl<I, A> BasicBlock<I, A> {
-    pub fn get_ops(&self) -> &[Operation<I, A>] {
-        &self.ops
-    }
-
-    pub fn get_ops_mut(&mut self) -> &mut Vec<Operation<I, A>> {
-        &mut self.ops
-    }
-
-    pub fn get_args(&self) -> &[Var] {
-        &self.args
-    }
-
-    pub fn get_args_mut(&mut self) -> &mut Vec<Var> {
-        &mut self.args
-    }
-}
-
-impl<I, A> Default for BasicBlock<I, A> {
-    fn default() -> BasicBlock<I, A> {
-        BasicBlock {
-            ops: Vec::new(),
-            args: Vec::new(),
-        }
-    }
-}
-
-impl<I1, A1> BasicBlock<I1, A1> {
-    pub fn pass<R>(&self, f: &dyn Fn(&Operation<I1, A1>) -> R, accum: &dyn Fn(Vec<R>) -> R) -> R {
-        let ops = self
-            .ops
-            .iter()
-            .map(|op| op.pass(f, accum))
-            .collect::<Vec<_>>();
-        accum(ops)
-    }
-
-    pub fn bifmap<I2, A2>(
-        mut self,
-        fintr: &dyn Fn(I1) -> I2,
-        fattr: &dyn Fn(A1) -> A2,
-    ) -> BasicBlock<I2, A2> {
-        let ops = self
-            .ops
-            .into_iter()
-            .map(|op| op.bifmap(fintr, fattr))
-            .collect::<Vec<_>>();
-        BasicBlock {
-            ops,
-            args: self.args,
-        }
-    }
+#[derive(Debug)]
+pub struct BasicBlock {
+    args: Vec<Var>,
+    ops: Vec<Operation>,
 }
 
 /// A close copy of the equivalent concept in MLIR.
@@ -269,171 +119,15 @@ impl<I1, A1> BasicBlock<I1, A1> {
 /// A region represents a scope controlled by the parent operation.
 /// The scope itself can have various attributes applied to it
 /// (in MLIR, this is via the trait system).
-#[derive(Debug, Serialize, Deserialize)]
-pub enum Region<I, A> {
-    Directed(SSACFG<I, A>),
-    Undirected(Graph<I, A>),
-}
-
-impl<I, A> Region<I, A> {
-    /// Get an immutable iterator over basic blocks.
-    fn block_iter(&self, id: usize) -> ImmutableBlockIterator<I, A> {
-        let ks = match self {
-            Region::Directed(ssacfg) => ssacfg.get_block_vars(id),
-            Region::Undirected(graph) => graph.get_block_vars(),
-        };
-        ImmutableBlockIterator {
-            region: self,
-            ks,
-            state: 0,
-        }
-    }
-
-    pub fn push_arg(&mut self, ind: usize) -> anyhow::Result<Var> {
-        match self {
-            Region::Directed(ssacfg) => Ok(ssacfg.push_arg(ind)),
-            Region::Undirected(graph) => {
-                bail!("Can't push argument onto `Graph` region.")
-            }
-        }
-    }
-
-    pub fn push_op(&mut self, blk: usize, op: Operation<I, A>) -> Var {
-        match self {
-            Region::Directed(ssacfg) => ssacfg.push_op(blk, op),
-            Region::Undirected(graph) => graph.push_op(op),
-        }
-    }
-
-    pub fn get_op(&self, id: Var) -> Option<(Var, &Operation<I, A>)> {
-        match self {
-            Region::Directed(ssacfg) => ssacfg.get_op(id),
-            Region::Undirected(graph) => graph.get_op(id),
-        }
-    }
-
-    pub fn push_block(&mut self, b: BasicBlock<I, A>) -> anyhow::Result<()> {
-        match self {
-            Region::Directed(ssacfg) => {
-                ssacfg.push_block(b);
-                Ok(())
-            }
-            Region::Undirected(graph) => {
-                if graph.has_block() {
-                    bail!("Can't push block onto `Graph` region which already has a block.")
-                } else {
-                    graph.push_block(b);
-                    Ok(())
-                }
-            }
-        }
-    }
-
-    pub fn get_block(&mut self, ind: usize) -> &mut BasicBlock<I, A> {
-        match self {
-            Region::Directed(ssacfg) => ssacfg.get_block(ind),
-            Region::Undirected(graph) => graph.get_block(),
-        }
-    }
-}
-
-impl<I, A> fmt::Display for Region<I, A>
-where
-    I: fmt::Display,
-    A: fmt::Display,
-{
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Region::Directed(ssacfg) => {
-                for ind in 0..ssacfg.get_blocks().len() {
-                    write!(f, "{}: ", ind)?;
-                    let b = &ssacfg.get_blocks()[ind];
-                    let bargs = &b.get_args();
-                    if !bargs.is_empty() {
-                        write!(f, "(")?;
-                        let l = bargs.len();
-                        for (ind, arg) in bargs.iter().enumerate() {
-                            match l - 1 == ind {
-                                true => write!(f, "{}", arg)?,
-                                _ => write!(f, "{}, ", arg)?,
-                            };
-                        }
-                        write!(f, ")")?;
-                    }
-                    writeln!(f)?;
-                    for (v, op) in self.block_iter(ind) {
-                        writeln!(indented(f).with_str("  "), "{} = {}", v, op)?;
-                    }
-                }
-                Ok(())
-            }
-
-            Region::Undirected(graph) => {
-                for (v, op) in self.block_iter(0) {
-                    writeln!(indented(f).with_str("  "), "{} = {}", v, op)?;
-                }
-                Ok(())
-            }
-        }
-    }
-}
-
-impl<I1, A1> Region<I1, A1> {
-    pub fn pass<R>(&self, f: &dyn Fn(&Operation<I1, A1>) -> R, accum: &dyn Fn(Vec<R>) -> R) -> R {
-        match self {
-            Region::Directed(r) => r.pass(f, accum),
-            Region::Undirected(r) => r.pass(f, accum),
-        }
-    }
-
-    pub fn bifmap<I2, A2>(
-        mut self,
-        fintr: &dyn Fn(I1) -> I2,
-        fattr: &dyn Fn(A1) -> A2,
-    ) -> Region<I2, A2> {
-        match self {
-            Region::Directed(r) => Region::Directed(r.bifmap(fintr, fattr)),
-            Region::Undirected(r) => Region::Undirected(r.bifmap(fintr, fattr)),
-        }
-    }
-}
-
 #[derive(Debug)]
-pub struct ImmutableBlockIterator<'b, I, A> {
-    region: &'b Region<I, A>,
-    ks: Vec<Var>,
-    state: usize,
-}
-
-impl<'b, I, A> Iterator for ImmutableBlockIterator<'b, I, A> {
-    type Item = (Var, &'b Operation<I, A>);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.ks.len() > self.state {
-            let p = self.region.get_op(self.ks[self.state]);
-            self.state += 1;
-            return p;
-        }
-        None
-    }
+pub enum Region {
+    //    Directed(SSACFG),
+//    Undirected(Graph),
 }
 
 /////
 ///// Operation verification.
 /////
-
-pub trait Verify
-where
-    Self: Sized,
-{
-    fn verify<A>(
-        &self,
-        args: Vec<Var>,
-        attrs: HashMap<String, A>,
-        regions: Vec<Region<Self, A>>,
-        successors: Vec<BasicBlock<Self, A>>,
-    ) -> anyhow::Result<()>;
-}
 
 /////
 ///// Lowering.
