@@ -1,22 +1,12 @@
 use abstraps;
-use abstraps::ir::builder::{OperationBuilder, Setup};
-use abstraps::ir::builtin::{BuiltinAttribute, BuiltinIntrinsic};
-use abstraps::ir::core::Verify;
-use serde::Serialize;
+use abstraps::ir::builder::OperationBuilder;
+use abstraps::ir::builtin::Module;
+use abstraps::ir::core::Intrinsic;
 
 #[test]
 fn builtins_module_operation() {
-    let mut builder =
-        OperationBuilder::<BuiltinIntrinsic, BuiltinAttribute>::new(BuiltinIntrinsic::Module);
+    let mut builder = Module.get_builder();
     let op = builder.finish();
     assert!(op.is_ok());
-}
-
-#[test]
-fn builtins_func_operation() {
-    let mut builder =
-        OperationBuilder::<BuiltinIntrinsic, BuiltinAttribute>::new(BuiltinIntrinsic::Func)
-            .name("my_func");
-    let op = builder.finish();
-    assert!(op.is_ok());
+    println!("{}", op.unwrap());
 }

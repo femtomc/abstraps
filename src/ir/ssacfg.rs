@@ -1,19 +1,19 @@
-use crate::ir::core::{BasicBlock, IRLInfo, ImmutableBlockIterator, Operation, Region, Var};
+use crate::ir::core::{BasicBlock, IRLInfo, Operation, Region, Var};
 use alloc::string::String;
 use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt;
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct SSACFG<I, A> {
+#[derive(Debug)]
+pub struct SSACFG {
     defs: Vec<(i32, i32)>,
     lines: Vec<Option<IRLInfo>>,
-    blocks: Vec<BasicBlock<I, A>>,
+    blocks: Vec<BasicBlock>,
 }
 
-impl<I, A> Default for SSACFG<I, A> {
-    fn default() -> SSACFG<I, A> {
+impl Default for SSACFG {
+    fn default() -> SSACFG {
         SSACFG {
             defs: Vec::new(),
             blocks: Vec::new(),
@@ -22,35 +22,7 @@ impl<I, A> Default for SSACFG<I, A> {
     }
 }
 
-impl<I1, A1> SSACFG<I1, A1> {
-    pub fn pass<R>(&self, f: &dyn Fn(&Operation<I1, A1>) -> R, accum: &dyn Fn(Vec<R>) -> R) -> R {
-        let blocks = self
-            .blocks
-            .iter()
-            .map(|blk| blk.pass(f, accum))
-            .collect::<Vec<_>>();
-        accum(blocks)
-    }
-
-    pub fn bifmap<I2, A2>(
-        mut self,
-        fintr: &dyn Fn(I1) -> I2,
-        fattr: &dyn Fn(A1) -> A2,
-    ) -> SSACFG<I2, A2> {
-        let blocks = self
-            .blocks
-            .into_iter()
-            .map(|blk| blk.bifmap(fintr, fattr))
-            .collect::<Vec<_>>();
-        SSACFG {
-            defs: self.defs,
-            lines: self.lines,
-            blocks: blocks,
-        }
-    }
-}
-
-impl<I, A> SSACFG<I, A> {
+impl SSACFG {
     pub fn get_args(&self) -> &[Var] {
         self.blocks[0].get_args()
     }
@@ -66,23 +38,23 @@ impl<I, A> SSACFG<I, A> {
         arg
     }
 
-    pub fn get_block(&mut self, ind: usize) -> &mut BasicBlock<I, A> {
+    pub fn get_block(&mut self, ind: usize) -> &mut BasicBlock {
         &mut self.blocks[ind]
     }
 
-    pub fn get_blocks(&self) -> &[BasicBlock<I, A>] {
+    pub fn get_blocks(&self) -> &[BasicBlock] {
         &self.blocks
     }
 
-    pub fn push_block(&mut self, blk: BasicBlock<I, A>) -> usize {
+    pub fn push_block(&mut self, blk: BasicBlock) -> usize {
         self.blocks.push(blk);
         self.blocks.len() - 1
     }
 
     /// Get an immutable reference to a "line" of the IR.
     /// The IR is indexed with `id` (a `Var` instance).
-    /// This returns `(Var, &Operation<I, A>)`.
-    pub fn get_op(&self, id: Var) -> Option<(Var, &Operation<I, A>)> {
+    /// This returns `(Var, &Operation)`.
+    pub fn get_op(&self, id: Var) -> Option<(Var, &Operation)> {
         match self.get_var_blockidx(id) {
             None => None,
             Some((b, i)) => {
@@ -95,7 +67,7 @@ impl<I, A> SSACFG<I, A> {
 
     /// Push an operation onto the IR at block index `blk`.
     /// Returns a new `Var` reference to that operation.
-    pub fn push_op(&mut self, blk: usize, v: Operation<I, A>) -> Var {
+    pub fn push_op(&mut self, blk: usize, v: Operation) -> Var {
         let arg = Var::new(self.defs.len());
         let len = self.blocks[blk].get_ops().len();
         let bb = &mut self.blocks[blk];
@@ -104,7 +76,7 @@ impl<I, A> SSACFG<I, A> {
         arg
     }
 
-    fn get_op_mut(&mut self, id: Var) -> Option<(Var, &mut Operation<I, A>)> {
+    fn get_op_mut(&mut self, id: Var) -> Option<(Var, &mut Operation)> {
         match self.get_var_blockidx(id) {
             None => None,
             Some((b, i)) => {

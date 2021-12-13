@@ -4,9 +4,9 @@
 
 */
 
-//pub mod builder;
-//pub mod builtin;
+pub mod builder;
+pub mod builtin;
 pub mod core;
-//pub mod graph;
+pub mod graph;
 //pub mod interp;
-//pub mod ssacfg;
+pub mod ssacfg;

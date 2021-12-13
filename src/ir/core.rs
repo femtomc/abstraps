@@ -26,13 +26,13 @@
 
 */
 
-//use crate::ir::graph::Graph;
-//use crate::ir::ssacfg::SSACFG;
+use crate::ir::builder::OperationBuilder;
+use crate::ir::graph::Graph;
+use crate::ir::ssacfg::SSACFG;
 use alloc::string::String;
 use alloc::vec::Vec;
 use anyhow;
 use anyhow::bail;
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt;
 use {indenter::indented, std::fmt::Write};
@@ -42,14 +42,14 @@ pub enum IRError {
     Fallback,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug)]
 pub struct IRLInfo {
     file: String,
     module: String,
     line: usize,
 }
 
-#[derive(Clone, Debug, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Clone, Debug, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Var(usize);
 
 impl Var {
@@ -68,20 +68,27 @@ impl fmt::Display for Var {
     }
 }
 
+pub trait IntrinsicTrait
+where
+    Self: std::fmt::Debug,
+{
+    fn verify(&self, op: &Operation) -> anyhow::Result<()>;
+}
+
 pub trait Intrinsic
 where
     Self: std::fmt::Debug,
 {
     fn get_namespace(&self) -> &str;
     fn get_name(&self) -> &str;
-    fn get_traits(&self) -> Vec<Box<dyn OperationTrait>>;
+    fn get_traits(&self) -> Vec<Box<dyn IntrinsicTrait>>;
+    fn get_builder(&self) -> OperationBuilder;
 }
 
-pub trait OperationTrait
-where
-    Self: std::fmt::Debug,
-{
-    fn verify(&self, op: &Operation) -> anyhow::Result<()>;
+impl fmt::Display for dyn Intrinsic {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}.{}", self.get_namespace(), self.get_name())
+    }
 }
 
 pub trait AttributeValue
@@ -90,13 +97,19 @@ where
 {
 }
 
+impl fmt::Display for dyn AttributeValue {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
 impl<T> AttributeValue for T where T: std::fmt::Debug {}
 
 pub trait Attribute
 where
-    Self: std::fmt::Debug,
+    Self: std::fmt::Debug + std::fmt::Display,
 {
-    fn get_value<T>(&self) -> Box<T>;
+    fn get_value(&self) -> Box<dyn AttributeValue>;
 }
 
 #[derive(Debug)]
@@ -108,10 +121,82 @@ pub struct Operation {
     successors: Vec<BasicBlock>,
 }
 
+impl Operation {
+    pub fn new(
+        intr: Box<dyn Intrinsic>,
+        args: Vec<Var>,
+        attrs: HashMap<String, Box<dyn Attribute>>,
+        regions: Vec<Region>,
+        successors: Vec<BasicBlock>,
+    ) -> Operation {
+        Operation {
+            intr,
+            args,
+            attrs,
+            regions,
+            successors,
+        }
+    }
+}
+
+impl fmt::Display for Operation {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.intr)?;
+        if !self.args.is_empty() {
+            write!(f, "(")?;
+            let l = self.args.len();
+            for (ind, arg) in self.args.iter().enumerate() {
+                match l - 1 == ind {
+                    true => write!(f, "{}", arg)?,
+                    _ => write!(f, "{}, ", arg)?,
+                };
+            }
+            write!(f, ")")?;
+        }
+        if !self.attrs.is_empty() {
+            write!(f, " {{ ")?;
+            let l = self.attrs.len();
+            for (ind, attr) in self.attrs.iter().enumerate() {
+                match l - 1 == ind {
+                    true => write!(f, "{} = {}", attr.0, attr.1)?,
+                    _ => write!(f, "{} = {}, ", attr.0, attr.1)?,
+                };
+            }
+            write!(f, " }}")?;
+        }
+        if !self.regions.is_empty() {
+            for r in self.regions.iter() {
+                write!(f, " {{\n")?;
+                write!(indented(f).with_str("  "), "{}", r)?;
+                write!(f, "}}")?;
+            }
+        }
+        Ok(())
+    }
+}
+
 #[derive(Debug)]
 pub struct BasicBlock {
     args: Vec<Var>,
     ops: Vec<Operation>,
+}
+
+impl BasicBlock {
+    pub fn get_ops(&self) -> &[Operation] {
+        &self.ops
+    }
+
+    pub fn get_ops_mut(&mut self) -> &mut Vec<Operation> {
+        &mut self.ops
+    }
+
+    pub fn get_args(&self) -> &[Var] {
+        &self.args
+    }
+
+    pub fn get_args_mut(&mut self) -> &mut Vec<Var> {
+        &mut self.args
+    }
 }
 
 /// A close copy of the equivalent concept in MLIR.
@@ -121,13 +206,128 @@ pub struct BasicBlock {
 /// (in MLIR, this is via the trait system).
 #[derive(Debug)]
 pub enum Region {
-    //    Directed(SSACFG),
-//    Undirected(Graph),
+    Directed(SSACFG),
+    Undirected(Graph),
 }
 
-/////
-///// Operation verification.
-/////
+impl Region {
+    /// Get an immutable iterator over basic blocks.
+    fn block_iter(&self, id: usize) -> ImmutableBlockIterator {
+        let ks = match self {
+            Region::Directed(ssacfg) => ssacfg.get_block_vars(id),
+            Region::Undirected(graph) => graph.get_block_vars(),
+        };
+        ImmutableBlockIterator {
+            region: self,
+            ks,
+            state: 0,
+        }
+    }
+
+    pub fn push_arg(&mut self, ind: usize) -> anyhow::Result<Var> {
+        match self {
+            Region::Directed(ssacfg) => Ok(ssacfg.push_arg(ind)),
+            Region::Undirected(graph) => {
+                bail!("Can't push argument onto `Graph` region.")
+            }
+        }
+    }
+
+    pub fn push_op(&mut self, blk: usize, op: Operation) -> Var {
+        match self {
+            Region::Directed(ssacfg) => ssacfg.push_op(blk, op),
+            Region::Undirected(graph) => graph.push_op(op),
+        }
+    }
+
+    pub fn get_op(&self, id: Var) -> Option<(Var, &Operation)> {
+        match self {
+            Region::Directed(ssacfg) => ssacfg.get_op(id),
+            Region::Undirected(graph) => graph.get_op(id),
+        }
+    }
+
+    pub fn push_block(&mut self, b: BasicBlock) -> anyhow::Result<()> {
+        match self {
+            Region::Directed(ssacfg) => {
+                ssacfg.push_block(b);
+                Ok(())
+            }
+            Region::Undirected(graph) => {
+                if graph.has_block() {
+                    bail!("Can't push block onto `Graph` region which already has a block.")
+                } else {
+                    graph.push_block(b);
+                    Ok(())
+                }
+            }
+        }
+    }
+
+    pub fn get_block(&mut self, ind: usize) -> &mut BasicBlock {
+        match self {
+            Region::Directed(ssacfg) => ssacfg.get_block(ind),
+            Region::Undirected(graph) => graph.get_block(),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct ImmutableBlockIterator<'b> {
+    region: &'b Region,
+    ks: Vec<Var>,
+    state: usize,
+}
+
+impl<'b> Iterator for ImmutableBlockIterator<'b> {
+    type Item = (Var, &'b Operation);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.ks.len() > self.state {
+            let p = self.region.get_op(self.ks[self.state]);
+            self.state += 1;
+            return p;
+        }
+        None
+    }
+}
+
+impl fmt::Display for Region {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Region::Directed(ssacfg) => {
+                for ind in 0..ssacfg.get_blocks().len() {
+                    write!(f, "{}: ", ind)?;
+                    let b = &ssacfg.get_blocks()[ind];
+                    let bargs = &b.get_args();
+                    if !bargs.is_empty() {
+                        write!(f, "(")?;
+                        let l = bargs.len();
+                        for (ind, arg) in bargs.iter().enumerate() {
+                            match l - 1 == ind {
+                                true => write!(f, "{}", arg)?,
+                                _ => write!(f, "{}, ", arg)?,
+                            };
+                        }
+                        write!(f, ")")?;
+                    }
+                    writeln!(f)?;
+                    for (v, op) in self.block_iter(ind) {
+                        writeln!(indented(f).with_str("  "), "{} = {}", v, op)?;
+                    }
+                }
+                Ok(())
+            }
+
+            Region::Undirected(graph) => {
+                for (v, op) in self.block_iter(0) {
+                    writeln!(indented(f).with_str("  "), "{} = {}", v, op)?;
+                }
+                Ok(())
+            }
+        }
+    }
+}
 
 /////
 ///// Lowering.
