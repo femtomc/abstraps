@@ -132,13 +132,14 @@ impl fmt::Display for dyn AttributeValue {
 
 impl<T> AttributeValue for T where T: std::fmt::Debug {}
 
-pub trait Attribute
+pub trait Attribute: Downcast
 where
     Self: std::fmt::Debug,
 {
     fn get_value(&self) -> &dyn AttributeValue;
     fn get_value_mut(&mut self) -> &mut dyn AttributeValue;
 }
+impl_downcast!(Attribute);
 
 impl fmt::Display for dyn Attribute {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -177,6 +178,10 @@ impl Operation {
 impl Operation {
     pub fn get_intrinsic(&self) -> &Box<dyn Intrinsic> {
         return &self.intr;
+    }
+
+    pub fn get_attributes(&self) -> &HashMap<String, Box<dyn Attribute>> {
+        return &self.attrs;
     }
 }
 

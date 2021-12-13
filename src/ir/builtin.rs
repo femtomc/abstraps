@@ -26,7 +26,14 @@ pub struct ProvidesSymbolTable;
 
 impl IntrinsicTrait for ProvidesSymbolTable {
     fn verify(&self, op: &Operation) -> bool {
-        true
+        if !op.get_attributes().contains_key("symbols") {
+            return false;
+        }
+        let attr = op.get_attributes().get("symbols").unwrap();
+        match attr.downcast_ref::<SymbolTable>() {
+            Some(v) => true,
+            None => false,
+        }
     }
 }
 
