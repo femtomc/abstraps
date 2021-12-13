@@ -74,19 +74,31 @@ impl OperationBuilder {
         self.cursor
     }
 
-    //pub fn push_arg(&mut self) -> Result<Var> {
-    //    let blk = self.cursor.1 - 1;
-    //    let r = self.get_region();
-    //    match r.push_arg(blk) {
-    //        Ok(v) => {
-    //            if blk == 0 {
-    //                self.push_operand(v);
-    //            }
-    //            Ok(v)
-    //        }
-    //        Err(e) => Err(e),
-    //    }
-    //}
+    pub fn push_arg(&mut self) -> Result<Var> {
+        let blk = self.cursor.1 - 1;
+        let r = self.get_region();
+        match r.push_arg(blk) {
+            Ok(v) => {
+                if blk == 0 {
+                    self.push_operand(v);
+                }
+                Ok(v)
+            }
+            Err(e) => Err(e),
+        }
+    }
+
+    pub fn insert_attr(&mut self, k: &str, attr: Box<dyn Attribute>) {
+        self.attrs.insert(k.to_string(), attr);
+    }
+
+    pub fn get_attrs(&self) -> &HashMap<String, Box<dyn Attribute>> {
+        &self.attrs
+    }
+
+    pub fn get_attr(&self, key: &str) -> Option<&Box<dyn Attribute>> {
+        self.attrs.get(key)
+    }
 
     pub fn push_region(&mut self, r: Region) {
         self.regions.push(r);
@@ -102,19 +114,31 @@ impl OperationBuilder {
         &self.regions
     }
 
-    //pub fn push_block(&mut self, b: BasicBlock) -> Result<()> {
-    //    let r = self.get_region();
-    //    r.push_block(b)?;
-    //    self.cursor = (self.cursor.0, self.cursor.1 + 1);
-    //    Ok(())
-    //}
+    pub fn push_block(&mut self, b: BasicBlock) -> Result<()> {
+        let r = self.get_region();
+        r.push_block(b)?;
+        self.cursor = (self.cursor.0, self.cursor.1 + 1);
+        Ok(())
+    }
 
-    //pub fn get_block(&mut self) -> &mut BasicBlock {
-    //    let cursor = self.cursor;
-    //    let blk = cursor.1 - 1;
-    //    let b = self.get_region().get_block(blk);
-    //    return b;
-    //}
+    pub fn get_block(&mut self) -> &mut BasicBlock {
+        let cursor = self.cursor;
+        let blk = cursor.1 - 1;
+        let b = self.get_region().get_block(blk);
+        return b;
+    }
+
+    // This automatically handles dialect conversion requirements.
+    // In the future, either remove -- or make fast.
+    pub fn push_op(mut self, v: Operation) -> OperationBuilder {
+        let ret = {
+            let blk = self.get_cursor().1 - 1;
+            let r = self.get_region();
+            r.push_op(blk, v)
+        };
+        self.latest = vec![ret];
+        self
+    }
 }
 
 impl OperationBuilder {

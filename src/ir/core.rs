@@ -107,9 +107,17 @@ impl<T> AttributeValue for T where T: std::fmt::Debug {}
 
 pub trait Attribute
 where
-    Self: std::fmt::Debug + std::fmt::Display,
+    Self: std::fmt::Debug,
 {
-    fn get_value(&self) -> Box<dyn AttributeValue>;
+    fn get_value(&self) -> &dyn AttributeValue;
+    fn get_value_mut(&mut self) -> &mut dyn AttributeValue;
+}
+
+impl fmt::Display for dyn Attribute {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let v = self.get_value();
+        write!(f, "{:?}", v)
+    }
 }
 
 #[derive(Debug)]
@@ -179,6 +187,15 @@ impl fmt::Display for Operation {
 pub struct BasicBlock {
     args: Vec<Var>,
     ops: Vec<Operation>,
+}
+
+impl Default for BasicBlock {
+    fn default() -> BasicBlock {
+        BasicBlock {
+            ops: Vec::new(),
+            args: Vec::new(),
+        }
+    }
 }
 
 impl BasicBlock {
