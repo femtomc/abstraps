@@ -82,13 +82,16 @@ impl_downcast!(IntrinsicTrait);
 /// but for code which looks at `Operation`, you can't make any
 /// trait statements (because of the dynamism, no generics).
 /// So here, what this is doing is saying - give me an `IntrinsicTrait`
-/// inhabitant, I'm going to ask the `dyn Intrinsic` in `Operation`
+/// type, I'm going to ask the `dyn Intrinsic` in `Operation`
 /// for all the `IntrinsicTrait` instances the operation is supposed
 /// to support. Then, it tries to downcast each one to
-/// the `intrait: IntrinsicTrait` type - and if it succeeds,
+/// the `IntrinsicTrait` type - and if it succeeds,
 /// it will use the associated `IntrinsicTrait` method `verify`
 /// to try and `verify` that the operation does indeed satisfy
 /// the `IntrinsicTrait`.
+///
+/// This makes use of `downcast_rs` -- and what I assume is complete
+/// wizardry.
 pub fn check_trait<K>(op: &Operation) -> Option<bool>
 where
     K: 'static + IntrinsicTrait,
