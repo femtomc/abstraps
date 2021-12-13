@@ -128,8 +128,6 @@ impl OperationBuilder {
         return b;
     }
 
-    // This automatically handles dialect conversion requirements.
-    // In the future, either remove -- or make fast.
     pub fn push_op(mut self, v: Operation) -> OperationBuilder {
         let ret = {
             let blk = self.get_cursor().1 - 1;
