@@ -21,6 +21,15 @@ impl Attribute for SymbolTable {
     }
 }
 
+#[derive(Debug)]
+pub struct ProvidesSymbolTable;
+
+impl IntrinsicTrait for ProvidesSymbolTable {
+    fn verify(&self, op: &Operation) -> bool {
+        true
+    }
+}
+
 // Module operation.
 #[derive(Debug)]
 pub struct Module;
@@ -35,7 +44,8 @@ impl Intrinsic for Module {
     }
 
     fn get_traits(&self) -> Vec<Box<dyn IntrinsicTrait>> {
-        Vec::new()
+        let st = Box::new(ProvidesSymbolTable);
+        vec![st]
     }
 
     fn get_builder(&self) -> OperationBuilder {

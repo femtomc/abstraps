@@ -33,6 +33,8 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use anyhow;
 use anyhow::bail;
+use downcast_rs::{impl_downcast, Downcast};
+use std::any::{Any, TypeId};
 use std::collections::HashMap;
 use std::fmt;
 use {indenter::indented, std::fmt::Write};
@@ -68,11 +70,33 @@ impl fmt::Display for Var {
     }
 }
 
-pub trait IntrinsicTrait
+pub trait IntrinsicTrait: Downcast
 where
     Self: std::fmt::Debug,
 {
-    fn verify(&self, op: &Operation) -> anyhow::Result<()>;
+    fn verify(&self, op: &Operation) -> bool;
+}
+impl_downcast!(IntrinsicTrait);
+
+/// This is absolutely crazy that this is required -
+/// but for code which looks at `Operation`, you can't make any
+/// trait statements (because of the dynamism, no generics).
+/// So here, what this is doing is saying - give me an `IntrinsicTrait`
+/// inhabitant, I'm going to ask the `dyn Intrinsic` in `Operation`
+/// for all the `IntrinsicTrait` instances the operation is supposed
+/// to support. Then, it tries to downcast each one to
+/// the `intrait: IntrinsicTrait` type - and if it succeeds,
+/// it will use the associated `IntrinsicTrait` method `verify`
+/// to try and `verify` that the operation does indeed satisfy
+/// the `IntrinsicTrait`.
+pub fn check_trait<K>(op: &Operation) -> Option<bool>
+where
+    K: 'static + IntrinsicTrait,
+{
+    op.get_intrinsic()
+        .get_traits()
+        .iter()
+        .find_map(|tr| tr.downcast_ref::<K>().map(|v| v.verify(op)))
 }
 
 pub trait Intrinsic
@@ -144,6 +168,12 @@ impl Operation {
             regions,
             successors,
         }
+    }
+}
+
+impl Operation {
+    pub fn get_intrinsic(&self) -> &Box<dyn Intrinsic> {
+        return &self.intr;
     }
 }
 
