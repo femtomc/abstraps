@@ -175,6 +175,11 @@ impl OperationBuilder {
         }
     }
 
+    pub fn push(mut self, v: OperationBuilder) -> Result<OperationBuilder> {
+        let op = v.finish()?;
+        Ok(self.push_op(op))
+    }
+
     pub fn push_op(mut self, v: Operation) -> OperationBuilder {
         let ret = {
             let blk = self.get_cursor().1 - 1;
