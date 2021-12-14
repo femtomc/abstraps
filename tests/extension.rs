@@ -1,7 +1,7 @@
 use abstraps;
-use abstraps::ir::builder::OperationBuilder;
-use abstraps::ir::builtin::{Func, Module};
-use abstraps::ir::core::{BasicBlock, Intrinsic, IntrinsicTrait, Var};
+use abstraps::core::builder::OperationBuilder;
+use abstraps::core::ir::{BasicBlock, Intrinsic, IntrinsicTrait, Var};
+use abstraps::dialects::builtin::intrinsics::{Func, Module};
 use anyhow;
 
 #[derive(Debug)]
@@ -35,9 +35,12 @@ fn builtins_module_operation_1() -> anyhow::Result<()> {
     let mut module = Module.get_builder("foo");
     let mut func = Func.get_builder("new_func");
     let operands = vec![func.push_arg()?, func.push_arg()?];
-    let mut add = Add.get_builder(operands);
-    let op = func.push(add)?;
-    let end = module.push(op)?.finish();
+    let mut add1 = Add.get_builder(operands);
+    let ret = func.push(add1)?;
+    let mut add2 = Add.get_builder(vec![ret, ret]);
+    func.push(add2)?;
+    module.push(func)?;
+    let end = module.finish();
     assert!(end.is_ok());
     println!("{}", end.unwrap());
     Ok(())

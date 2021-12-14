@@ -1,7 +1,7 @@
 use abstraps;
-use abstraps::ir::builder::OperationBuilder;
-use abstraps::ir::builtin::{Func, Module};
-use abstraps::ir::core::Intrinsic;
+use abstraps::core::builder::OperationBuilder;
+use abstraps::core::ir::Intrinsic;
+use abstraps::dialects::builtin::intrinsics::{Func, Module};
 
 #[test]
 fn builtins_module_operation_0() {
@@ -13,11 +13,12 @@ fn builtins_module_operation_0() {
 
 #[test]
 fn builtins_module_operation_1() {
-    let module = Module.get_builder("foo");
+    let mut module = Module.get_builder("foo");
     let func = Func.get_builder("new_func").finish();
     assert!(func.is_ok());
     let f = func.unwrap();
-    let end = module.push_op(f).finish();
+    module.push_op(f);
+    let end = module.finish();
     assert!(end.is_ok());
     println!("{}", end.unwrap());
 }

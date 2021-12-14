@@ -10,11 +10,8 @@ license-file = "LICENSE"
 
 [dependencies]
 anyhow = "1.0.51"
-derive_more = "0.99.17"
 downcast-rs = "1.2.0"
 indenter = "0.3.3"
-serde = { version = "1.0", default-features = false, features = ["derive", "alloc"] }
-serde_json = { version = "1.0" }
 
 [build-dependencies]
 bindgen = "0.59.1"

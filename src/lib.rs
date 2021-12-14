@@ -8,9 +8,10 @@
 #![allow(dead_code)]
 #![warn(missing_docs)]
 
-//pub mod backends;
-pub mod ir;
+pub mod backends;
+pub mod dialects;
+//pub mod interp;
+pub mod core;
 
 #[macro_use]
 extern crate alloc;
-extern crate derive_more;

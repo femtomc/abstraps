@@ -19,8 +19,8 @@
 
 */
 
-use crate::builder::OperationBuilder;
-use crate::ir::{AbstractInterpreter, Branch, Operation, Var};
+use crate::ir::builder::OperationBuilder;
+use crate::ir::core::{AbstractInterpreter, Operation, Var};
 use alloc::collections::vec_deque::VecDeque;
 use alloc::collections::BTreeMap;
 use alloc::string::String;

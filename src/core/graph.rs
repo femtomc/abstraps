@@ -1,7 +1,6 @@
-use crate::ir::core::{BasicBlock, Operation, Region, Var};
+use crate::core::ir::{BasicBlock, Operation, Var};
 use alloc::string::String;
 use alloc::vec::Vec;
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt;
 

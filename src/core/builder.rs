@@ -8,14 +8,14 @@
 
 */
 
-use crate::ir::core::{
-    Attribute, BasicBlock, Intrinsic, IntrinsicTrait, Operation, Region, SupportsVerification, Var,
+use crate::core::ir::{
+    Attribute, BasicBlock, Intrinsic, IntrinsicTrait, Operation, SupportsVerification, Var,
 };
+use crate::core::region::Region;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 use anyhow::{bail, Result};
-use serde::{Serialize, Serializer};
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -175,19 +175,18 @@ impl OperationBuilder {
         }
     }
 
-    pub fn push(mut self, v: OperationBuilder) -> Result<OperationBuilder> {
+    pub fn push(&mut self, v: OperationBuilder) -> Result<Var> {
         let op = v.finish()?;
         Ok(self.push_op(op))
     }
 
-    pub fn push_op(mut self, v: Operation) -> OperationBuilder {
+    pub fn push_op(&mut self, v: Operation) -> Var {
         let ret = {
             let blk = self.get_cursor().1 - 1;
             let r = self.get_region();
             r.push_op(blk, v)
         };
-        self.latest = vec![ret];
-        self
+        ret
     }
 }
 

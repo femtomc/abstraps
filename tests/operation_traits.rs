@@ -1,7 +1,9 @@
 use abstraps;
-use abstraps::ir::builder::OperationBuilder;
-use abstraps::ir::builtin::{Func, Module, ProvidesSymbol, ProvidesSymbolTable, SymbolTable};
-use abstraps::ir::core::{Intrinsic, IntrinsicTrait, Var};
+use abstraps::core::builder::OperationBuilder;
+use abstraps::core::ir::{Intrinsic, IntrinsicTrait, Var};
+use abstraps::dialects::builtin::attributes::SymbolTable;
+use abstraps::dialects::builtin::intrinsics::{Func, Module};
+use abstraps::dialects::builtin::traits::{ProvidesSymbol, ProvidesSymbolTable};
 use anyhow;
 use anyhow::bail;
 
