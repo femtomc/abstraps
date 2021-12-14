@@ -8,11 +8,13 @@
 
 */
 
-use crate::ir::core::{Attribute, BasicBlock, Intrinsic, IntrinsicTrait, Operation, Region, Var};
+use crate::ir::core::{
+    Attribute, BasicBlock, Intrinsic, IntrinsicTrait, Operation, Region, SupportsVerification, Var,
+};
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
-use anyhow::Result;
+use anyhow::{bail, Result};
 use serde::{Serialize, Serializer};
 use std::collections::HashMap;
 
@@ -28,9 +30,19 @@ pub struct OperationBuilder {
     cursor: (usize, usize),
     intrinsic: Box<dyn Intrinsic>,
     operands: Vec<Var>,
-    attrs: HashMap<String, Box<dyn Attribute>>,
+    attributes: HashMap<String, Box<dyn Attribute>>,
     regions: Vec<Region>,
     successors: Vec<BasicBlock>,
+}
+
+impl SupportsVerification for OperationBuilder {
+    fn get_intrinsic(&self) -> &Box<dyn Intrinsic> {
+        &self.intrinsic
+    }
+
+    fn get_attributes(&self) -> &HashMap<String, Box<dyn Attribute>> {
+        return &self.attributes;
+    }
 }
 
 impl OperationBuilder {
@@ -40,7 +52,7 @@ impl OperationBuilder {
             cursor: (0, 0),
             intrinsic: intr,
             operands: Vec::new(),
-            attrs: HashMap::new(),
+            attributes: HashMap::new(),
             regions: Vec::new(),
             successors: Vec::new(),
         }
@@ -89,15 +101,15 @@ impl OperationBuilder {
     }
 
     pub fn insert_attr(&mut self, k: &str, attr: Box<dyn Attribute>) {
-        self.attrs.insert(k.to_string(), attr);
+        self.attributes.insert(k.to_string(), attr);
     }
 
-    pub fn get_attrs(&self) -> &HashMap<String, Box<dyn Attribute>> {
-        &self.attrs
+    pub fn get_attributes(&self) -> &HashMap<String, Box<dyn Attribute>> {
+        &self.attributes
     }
 
-    pub fn get_attr(&self, key: &str) -> Option<&Box<dyn Attribute>> {
-        self.attrs.get(key)
+    pub fn get_attributes_mut(&mut self) -> &mut HashMap<String, Box<dyn Attribute>> {
+        return &mut self.attributes;
     }
 
     pub fn push_region(&mut self, r: Region) {
@@ -128,6 +140,41 @@ impl OperationBuilder {
         return b;
     }
 
+    pub fn check_trait<K>(&self) -> Option<anyhow::Result<()>>
+    where
+        K: IntrinsicTrait,
+    {
+        self.get_intrinsic()
+            .get_traits()
+            .iter()
+            .find_map(|tr| tr.downcast_ref::<K>().map(|v| v.verify(self)))
+    }
+
+    pub fn has_trait<K>(&self) -> bool
+    where
+        K: IntrinsicTrait,
+    {
+        match self.check_trait::<K>() {
+            Some(v) => v.is_ok(),
+            None => false,
+        }
+    }
+
+    pub fn get_trait<K>(&self) -> anyhow::Result<Box<K>>
+    where
+        K: IntrinsicTrait + Copy,
+    {
+        let tr = self
+            .get_intrinsic()
+            .get_traits()
+            .into_iter()
+            .find(|v| v.is::<K>());
+        match tr {
+            None => bail!("Failed to get trait."),
+            Some(v) => Ok(v.downcast::<K>().unwrap()),
+        }
+    }
+
     pub fn push_op(mut self, v: Operation) -> OperationBuilder {
         let ret = {
             let blk = self.get_cursor().1 - 1;
@@ -144,7 +191,7 @@ impl OperationBuilder {
         Ok(Operation::new(
             self.intrinsic,
             self.operands,
-            self.attrs,
+            self.attributes,
             self.regions,
             self.successors,
         ))

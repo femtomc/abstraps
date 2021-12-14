@@ -74,33 +74,18 @@ pub trait IntrinsicTrait: Downcast
 where
     Self: std::fmt::Debug,
 {
-    fn verify(&self, op: &Operation) -> bool;
+    fn verify(&self, op: &dyn SupportsVerification) -> anyhow::Result<()>;
+    fn get_attribute_mut<'a>(
+        &self,
+        op: &'a mut OperationBuilder,
+    ) -> anyhow::Result<&'a mut Box<dyn Attribute>> {
+        bail!(format!(
+            "Failed to get attribute associated with {:?}.",
+            self
+        ))
+    }
 }
 impl_downcast!(IntrinsicTrait);
-
-/// This is absolutely crazy that this is required -
-/// but for code which looks at `Operation`, you can't make any
-/// trait statements (because of the dynamism, no generics).
-/// So here, what this is doing is saying - give me an `IntrinsicTrait`
-/// type, I'm going to ask the `dyn Intrinsic` in `Operation`
-/// for all the `IntrinsicTrait` instances the operation is supposed
-/// to support. Then, it tries to downcast each one to
-/// the `IntrinsicTrait` type - and if it succeeds,
-/// it will use the associated `IntrinsicTrait` method `verify`
-/// to try and `verify` that the operation does indeed satisfy
-/// the `IntrinsicTrait`.
-///
-/// This makes use of `downcast_rs` -- and what I assume is complete
-/// wizardry.
-pub fn check_trait<K>(op: &Operation) -> Option<bool>
-where
-    K: 'static + IntrinsicTrait,
-{
-    op.get_intrinsic()
-        .get_traits()
-        .iter()
-        .find_map(|tr| tr.downcast_ref::<K>().map(|v| v.verify(op)))
-}
 
 pub trait Intrinsic
 where
@@ -148,50 +133,113 @@ impl fmt::Display for dyn Attribute {
     }
 }
 
+pub trait SupportsVerification
+where
+    Self: std::fmt::Debug,
+{
+    fn get_intrinsic(&self) -> &Box<dyn Intrinsic>;
+    fn get_attributes(&self) -> &HashMap<String, Box<dyn Attribute>>;
+}
+
 #[derive(Debug)]
 pub struct Operation {
-    intr: Box<dyn Intrinsic>,
-    args: Vec<Var>,
-    attrs: HashMap<String, Box<dyn Attribute>>,
+    intrinsic: Box<dyn Intrinsic>,
+    operands: Vec<Var>,
+    attributes: HashMap<String, Box<dyn Attribute>>,
     regions: Vec<Region>,
     successors: Vec<BasicBlock>,
 }
 
+impl SupportsVerification for Operation {
+    fn get_intrinsic(&self) -> &Box<dyn Intrinsic> {
+        &self.intrinsic
+    }
+
+    fn get_attributes(&self) -> &HashMap<String, Box<dyn Attribute>> {
+        return &self.attributes;
+    }
+}
+
 impl Operation {
     pub fn new(
-        intr: Box<dyn Intrinsic>,
-        args: Vec<Var>,
-        attrs: HashMap<String, Box<dyn Attribute>>,
+        intrinsic: Box<dyn Intrinsic>,
+        operands: Vec<Var>,
+        attributes: HashMap<String, Box<dyn Attribute>>,
         regions: Vec<Region>,
         successors: Vec<BasicBlock>,
     ) -> Operation {
         Operation {
-            intr,
-            args,
-            attrs,
+            intrinsic,
+            operands,
+            attributes,
             regions,
             successors,
+        }
+    }
+
+    // This is absolutely crazy that this is required -
+    // but for code which looks at `Operation`, you can't make any
+    // trait statements (because of the dynamism, no generics).
+    // So here, what this is doing is saying - give me an `IntrinsicTrait`
+    // type, I'm going to ask the `dyn Intrinsic` in `Operation`
+    // for all the `IntrinsicTrait` instances the operation is supposed
+    // to support. Then, it tries to downcast each one to
+    // the `IntrinsicTrait` type - and if it succeeds,
+    // it will use the associated `IntrinsicTrait` method `verify`
+    // to try and `verify` that the operation does indeed satisfy
+    // the `IntrinsicTrait`.
+    //
+    // This makes use of `downcast_rs` -- and what I assume is complete
+    // wizardry.
+    pub fn check_trait<K>(&self) -> Option<anyhow::Result<()>>
+    where
+        K: IntrinsicTrait,
+    {
+        self.get_intrinsic()
+            .get_traits()
+            .iter()
+            .find_map(|tr| tr.downcast_ref::<K>().map(|v| v.verify(self)))
+    }
+
+    pub fn has_trait<K>(&self) -> bool
+    where
+        K: IntrinsicTrait,
+    {
+        match self.check_trait::<K>() {
+            Some(v) => v.is_ok(),
+            None => false,
+        }
+    }
+
+    pub fn get_trait<K>(&self) -> anyhow::Result<Box<K>>
+    where
+        K: IntrinsicTrait + Copy,
+    {
+        let tr = self
+            .get_intrinsic()
+            .get_traits()
+            .into_iter()
+            .find(|v| v.is::<K>());
+        match tr {
+            None => bail!("Failed to get trait."),
+            Some(v) => Ok(v.downcast::<K>().unwrap()),
         }
     }
 }
 
 impl Operation {
-    pub fn get_intrinsic(&self) -> &Box<dyn Intrinsic> {
-        return &self.intr;
-    }
-
-    pub fn get_attributes(&self) -> &HashMap<String, Box<dyn Attribute>> {
-        return &self.attrs;
+    pub fn get_attributes_mut(&mut self) -> &mut HashMap<String, Box<dyn Attribute>> {
+        return &mut self.attributes;
     }
 }
 
 impl fmt::Display for Operation {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.intr)?;
-        if !self.args.is_empty() {
+        write!(f, "{}", self.intrinsic)?;
+        if !self.operands.is_empty() {
             write!(f, "(")?;
-            let l = self.args.len();
-            for (ind, arg) in self.args.iter().enumerate() {
+            let l = self.operands.len();
+            for (ind, arg) in self.operands.iter().enumerate() {
                 match l - 1 == ind {
                     true => write!(f, "{}", arg)?,
                     _ => write!(f, "{}, ", arg)?,
@@ -199,10 +247,10 @@ impl fmt::Display for Operation {
             }
             write!(f, ")")?;
         }
-        if !self.attrs.is_empty() {
+        if !self.attributes.is_empty() {
             write!(f, " {{ ")?;
-            let l = self.attrs.len();
-            for (ind, attr) in self.attrs.iter().enumerate() {
+            let l = self.attributes.len();
+            for (ind, attr) in self.attributes.iter().enumerate() {
                 match l - 1 == ind {
                     true => write!(f, "{} = {}", attr.0, attr.1)?,
                     _ => write!(f, "{} = {}, ", attr.0, attr.1)?,
@@ -212,7 +260,7 @@ impl fmt::Display for Operation {
         }
         if !self.regions.is_empty() {
             for r in self.regions.iter() {
-                write!(f, " {{\n")?;
+                writeln!(f, " {{")?;
                 write!(indented(f).with_str("  "), "{}", r)?;
                 write!(f, "}}")?;
             }
@@ -223,7 +271,7 @@ impl fmt::Display for Operation {
 
 #[derive(Debug)]
 pub struct BasicBlock {
-    args: Vec<Var>,
+    operands: Vec<Var>,
     ops: Vec<Operation>,
 }
 
@@ -231,7 +279,7 @@ impl Default for BasicBlock {
     fn default() -> BasicBlock {
         BasicBlock {
             ops: Vec::new(),
-            args: Vec::new(),
+            operands: Vec::new(),
         }
     }
 }
@@ -245,12 +293,12 @@ impl BasicBlock {
         &mut self.ops
     }
 
-    pub fn get_args(&self) -> &[Var] {
-        &self.args
+    pub fn get_operands(&self) -> &[Var] {
+        &self.operands
     }
 
-    pub fn get_args_mut(&mut self) -> &mut Vec<Var> {
-        &mut self.args
+    pub fn get_operands_mut(&mut self) -> &mut Vec<Var> {
+        &mut self.operands
     }
 }
 
@@ -354,11 +402,11 @@ impl fmt::Display for Region {
                 for ind in 0..ssacfg.get_blocks().len() {
                     write!(f, "{}: ", ind)?;
                     let b = &ssacfg.get_blocks()[ind];
-                    let bargs = &b.get_args();
-                    if !bargs.is_empty() {
+                    let boperands = &b.get_operands();
+                    if !boperands.is_empty() {
                         write!(f, "(")?;
-                        let l = bargs.len();
-                        for (ind, arg) in bargs.iter().enumerate() {
+                        let l = boperands.len();
+                        for (ind, arg) in boperands.iter().enumerate() {
                             match l - 1 == ind {
                                 true => write!(f, "{}", arg)?,
                                 _ => write!(f, "{}, ", arg)?,

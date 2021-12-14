@@ -23,18 +23,18 @@ impl Default for SSACFG {
 }
 
 impl SSACFG {
-    pub fn get_args(&self) -> &[Var] {
-        self.blocks[0].get_args()
+    pub fn get_operands(&self) -> &[Var] {
+        self.blocks[0].get_operands()
     }
 
-    pub fn get_block_args(&self, blk: usize) -> &[Var] {
-        self.blocks[blk].get_args()
+    pub fn get_block_operands(&self, blk: usize) -> &[Var] {
+        self.blocks[blk].get_operands()
     }
 
     pub fn push_arg(&mut self, blk: usize) -> Var {
         let arg = Var::new(self.defs.len());
         self.defs.push((blk as i32, -1));
-        self.blocks[blk].get_args_mut().push(arg);
+        self.blocks[blk].get_operands_mut().push(arg);
         arg
     }
 
