@@ -44,13 +44,6 @@ pub enum IRError {
     Fallback,
 }
 
-#[derive(Clone, Debug)]
-pub struct IRLInfo {
-    file: String,
-    module: String,
-    line: usize,
-}
-
 #[derive(Clone, Debug, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Var(usize);
 
@@ -94,7 +87,6 @@ where
     fn get_namespace(&self) -> &str;
     fn get_name(&self) -> &str;
     fn get_traits(&self) -> Vec<Box<dyn IntrinsicTrait>>;
-    fn get_builder(&self) -> OperationBuilder;
 }
 
 impl fmt::Display for dyn Intrinsic {

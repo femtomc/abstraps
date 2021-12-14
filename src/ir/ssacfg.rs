@@ -1,4 +1,4 @@
-use crate::ir::core::{BasicBlock, IRLInfo, Operation, Region, Var};
+use crate::ir::core::{BasicBlock, Operation, Region, Var};
 use alloc::string::String;
 use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
@@ -8,7 +8,6 @@ use std::fmt;
 #[derive(Debug)]
 pub struct SSACFG {
     defs: Vec<(i32, i32)>,
-    lines: Vec<Option<IRLInfo>>,
     blocks: Vec<BasicBlock>,
 }
 
@@ -17,7 +16,6 @@ impl Default for SSACFG {
         SSACFG {
             defs: Vec::new(),
             blocks: Vec::new(),
-            lines: Vec::new(),
         }
     }
 }

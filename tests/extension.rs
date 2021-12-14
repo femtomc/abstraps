@@ -18,8 +18,10 @@ impl Intrinsic for Add {
     fn get_traits(&self) -> Vec<Box<dyn IntrinsicTrait>> {
         Vec::new()
     }
+}
 
-    fn get_builder(&self) -> OperationBuilder {
+impl Add {
+    pub fn get_builder(&self) -> OperationBuilder {
         let intr = Box::new(Add);
         let mut b = OperationBuilder::default(intr);
         let blk = BasicBlock::default();
@@ -29,8 +31,8 @@ impl Intrinsic for Add {
 
 #[test]
 fn builtins_module_operation_1() {
-    let mut module = Module.get_builder().name("foo");
-    let mut func = Func.get_builder().name("new_func");
+    let mut module = Module.get_builder("foo");
+    let mut func = Func.get_builder("new_func");
     let mut add = Add.get_builder();
     let operands = vec![func.push_arg().unwrap(), func.push_arg().unwrap()];
     add.set_operands(operands);

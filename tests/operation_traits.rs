@@ -14,7 +14,7 @@ use anyhow::bail;
 
 #[test]
 fn operation_traits_module_operation_0() -> anyhow::Result<()> {
-    let mut builder = Module.get_builder();
+    let mut builder = Module.get_builder("foo");
     let tr = builder.get_trait::<ProvidesSymbolTable>()?;
     let attr = tr.get_attribute_mut(&mut builder)?;
     let mut q = attr.downcast_mut::<SymbolTable>().unwrap();

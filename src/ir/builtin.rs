@@ -71,8 +71,10 @@ impl Intrinsic for Module {
         let st = Box::new(ProvidesSymbolTable);
         vec![st]
     }
+}
 
-    fn get_builder(&self) -> OperationBuilder {
+impl Module {
+    pub fn get_builder(&self, name: &str) -> OperationBuilder {
         let intr = Box::new(Module);
         let mut b = OperationBuilder::default(intr);
         let r = Region::Undirected(Graph::default());
@@ -81,6 +83,8 @@ impl Intrinsic for Module {
         b.push_block(blk);
         let st = SymbolTable(HashMap::new());
         b.insert_attr("symbols", Box::new(st));
+        let sym_name = SymbolAttribute(name.to_string());
+        b.insert_attr("symbol", Box::new(sym_name));
         b
     }
 }
@@ -101,14 +105,18 @@ impl Intrinsic for Func {
         let s = Box::new(ProvidesSymbol);
         vec![s]
     }
+}
 
-    fn get_builder(&self) -> OperationBuilder {
+impl Func {
+    pub fn get_builder(&self, name: &str) -> OperationBuilder {
         let intr = Box::new(Func);
         let mut b = OperationBuilder::default(intr);
         let r = Region::Directed(SSACFG::default());
         b.push_region(r);
         let blk = BasicBlock::default();
         b.push_block(blk);
+        let attr = SymbolAttribute(name.to_string());
+        b.insert_attr("symbol", Box::new(attr));
         b
     }
 }
@@ -139,13 +147,5 @@ impl IntrinsicTrait for ProvidesSymbol {
             Some(v) => Ok(()),
             None => bail!("The attribute value indexed by `symbol` is not a `Symbol`."),
         }
-    }
-}
-
-impl OperationBuilder {
-    pub fn name(mut self, name: &str) -> Self {
-        let attr = SymbolAttribute(name.to_string());
-        self.insert_attr("symbol", Box::new(attr));
-        self
     }
 }
