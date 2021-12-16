@@ -1,8 +1,5 @@
 use crate::core::ir::{BasicBlock, Operation, Var};
-use alloc::string::String;
 use alloc::vec::Vec;
-use std::collections::HashMap;
-use std::fmt;
 
 #[derive(Debug)]
 pub struct Graph {

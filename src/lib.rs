@@ -5,8 +5,6 @@
 */
 
 #![doc = include_str!("../README.md")]
-#![allow(dead_code)]
-#![warn(missing_docs)]
 
 pub mod backends;
 pub mod dialects;

@@ -127,7 +127,7 @@ impl fmt::Display for Region {
                 Ok(())
             }
 
-            Region::Undirected(graph) => {
+            Region::Undirected(_) => {
                 for (v, op) in self.block_iter(0) {
                     writeln!(indented(f).with_str("  "), "{} = {}", v, op)?;
                 }

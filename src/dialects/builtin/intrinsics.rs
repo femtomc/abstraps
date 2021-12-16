@@ -1,16 +1,10 @@
 use crate::core::builder::OperationBuilder;
 use crate::core::graph::Graph;
-use crate::core::ir::{
-    Attribute, AttributeValue, BasicBlock, Intrinsic, IntrinsicTrait, Operation,
-    SupportsVerification, Var,
-};
+use crate::core::ir::{BasicBlock, Intrinsic, IntrinsicTrait, Var};
 use crate::core::region::Region;
 use crate::core::ssacfg::SSACFG;
 use crate::dialects::builtin::attributes::{Symbol, SymbolTable};
 use crate::dialects::builtin::traits::{ProvidesSymbol, ProvidesSymbolTable};
-use anyhow::{bail, Result};
-use std::collections::HashMap;
-use std::fmt;
 
 // Module intrinsic.
 #[derive(Debug)]

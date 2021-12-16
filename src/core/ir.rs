@@ -65,7 +65,7 @@ where
 }
 impl_downcast!(IntrinsicTrait);
 
-pub trait Intrinsic
+pub trait Intrinsic: Downcast
 where
     Self: std::fmt::Debug,
 {
@@ -73,6 +73,7 @@ where
     fn get_name(&self) -> &str;
     fn get_traits(&self) -> Vec<Box<dyn IntrinsicTrait>>;
 }
+impl_downcast!(Intrinsic);
 
 impl fmt::Display for dyn Intrinsic {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -291,52 +292,4 @@ pub trait Lowering<T> {
     fn prepare(&self) -> Result<Self::IRBuilder, Self::Error>;
     fn build(&self, b: &mut Self::IRBuilder) -> Result<(), Self::Error>;
     fn lower(&self) -> Result<T, Self::Error>;
-}
-
-/////
-///// Abstract interpreter.
-/////
-
-/// The `AbstractInterpreter<IR, R>` trait specifies an interface
-/// for the implementation of abstract interpreters which operate
-/// on intermediate representations of type `IR`, and return a result
-/// artifact of type `R`.
-///
-/// Interpreters are prepared using "reference information" (e.g. a type mapping from arguments to
-/// types, etc) whose type is specified with `Self::Meta`, and an immutable pointer to the `IR` (so
-/// that interpreters can prepare block frames, etc).
-///
-/// Interpreters can error inside of method calls with type `Self::Error`.
-pub trait AbstractInterpreter<IR, R> {
-    /// Meta information required to prepare an interpreter.
-    type Meta;
-
-    /// The type of lattice elements.
-    type LatticeElement;
-
-    /// An associated error type for the implementor.
-    type Error;
-
-    /// `prepare` accepts a `Self::Meta` instance and a reference
-    /// to an `IR` type instance and prepares an interpreter.
-    ///
-    /// The `Self::Meta` type can be a type signature, or other
-    /// piece of meta-information.
-    fn prepare(meta: Self::Meta, ir: &IR) -> Result<Self, Self::Error>
-    where
-        Self: Sized;
-
-    /// `step` performs a single abstract interpretation step
-    /// with reference to the `ir: &IR`. The `step` may fail -- returning
-    /// a `Err(Self::Error)` value. Otherwise, the `step` will
-    /// likely mutate the interpreter -- progressing its analysis
-    /// and storing any interpretation metadata.
-    fn step(&mut self, ir: &IR) -> Result<(), Self::Error>;
-
-    /// `finish` produces a result artifact `R` and resets
-    /// the interpreter. This could include mutating the state
-    /// of the interpreter (resetting fields) -- this
-    /// method will likely be called before the interpreter
-    /// is dropped.
-    fn finish(&mut self) -> Result<R, Self::Error>;
 }

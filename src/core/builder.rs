@@ -12,11 +12,12 @@ use crate::core::ir::{
     Attribute, BasicBlock, Intrinsic, IntrinsicTrait, Operation, SupportsVerification, Var,
 };
 use crate::core::region::Region;
-use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 use anyhow::{bail, Result};
 use std::collections::HashMap;
+use std::fmt;
+use {indenter::indented, std::fmt::Write};
 
 #[derive(Debug)]
 pub enum BuilderError {
@@ -199,5 +200,41 @@ impl OperationBuilder {
             self.regions,
             self.successors,
         ))
+    }
+}
+
+impl fmt::Display for OperationBuilder {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.intrinsic)?;
+        if !self.operands.is_empty() {
+            write!(f, "(")?;
+            let l = self.operands.len();
+            for (ind, arg) in self.operands.iter().enumerate() {
+                match l - 1 == ind {
+                    true => write!(f, "{}", arg)?,
+                    _ => write!(f, "{}, ", arg)?,
+                };
+            }
+            write!(f, ")")?;
+        }
+        if !self.attributes.is_empty() {
+            write!(f, " {{ ")?;
+            let l = self.attributes.len();
+            for (ind, attr) in self.attributes.iter().enumerate() {
+                match l - 1 == ind {
+                    true => write!(f, "{} = {}", attr.0, attr.1)?,
+                    _ => write!(f, "{} = {}, ", attr.0, attr.1)?,
+                };
+            }
+            write!(f, " }}")?;
+        }
+        if !self.regions.is_empty() {
+            for r in self.regions.iter() {
+                writeln!(f, " {{")?;
+                write!(indented(f).with_str("  "), "{}", r)?;
+                write!(f, "}}")?;
+            }
+        }
+        Ok(())
     }
 }
