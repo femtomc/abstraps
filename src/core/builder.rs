@@ -44,6 +44,10 @@ impl SupportsVerification for OperationBuilder {
     fn get_attributes(&self) -> &HashMap<String, Box<dyn Attribute>> {
         &self.attributes
     }
+
+    fn get_regions(&self) -> &[Region] {
+        &self.regions
+    }
 }
 
 impl OperationBuilder {

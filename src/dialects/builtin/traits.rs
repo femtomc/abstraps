@@ -1,5 +1,5 @@
 use crate::core::builder::OperationBuilder;
-use crate::core::ir::{Attribute, IntrinsicTrait, SupportsVerification};
+use crate::core::ir::{Attribute, IntrinsicTrait, Operation, SupportsVerification};
 use crate::dialects::builtin::attributes::{Symbol, SymbolTable};
 use anyhow::bail;
 
@@ -20,9 +20,9 @@ impl IntrinsicTrait for ProvidesSymbolTable {
 
     fn get_attribute_mut<'a>(
         &self,
-        b: &'a mut OperationBuilder,
+        op: &'a mut Operation,
     ) -> anyhow::Result<&'a mut Box<dyn Attribute>> {
-        match b.get_attributes_mut().get_mut("symbols") {
+        match op.get_attributes_mut().get_mut("symbols") {
             None => bail!("Failed to get `symbols` key in operation attributes map."),
             Some(v) => Ok(v),
         }
@@ -41,6 +41,23 @@ impl IntrinsicTrait for ProvidesSymbol {
         match attr.downcast_ref::<Symbol>() {
             Some(_v) => Ok(()),
             None => bail!("The attribute value indexed by `symbol` is not a `Symbol`."),
+        }
+    }
+
+    fn get_attribute<'a>(&self, op: &'a Operation) -> anyhow::Result<&'a Box<dyn Attribute>> {
+        match op.get_attributes().get("symbol") {
+            None => bail!("Failed to get `symbol` key in operation attributes map."),
+            Some(v) => Ok(v),
+        }
+    }
+
+    fn get_attribute_mut<'a>(
+        &self,
+        op: &'a mut Operation,
+    ) -> anyhow::Result<&'a mut Box<dyn Attribute>> {
+        match op.get_attributes_mut().get_mut("symbol") {
+            None => bail!("Failed to get `symbol` key in operation attributes map."),
+            Some(v) => Ok(v),
         }
     }
 }

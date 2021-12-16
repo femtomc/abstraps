@@ -19,8 +19,6 @@ where
         None
     }
 
-    fn apply(&self, op: &mut Operation) -> anyhow::Result<()>;
-
     fn check_valid(&self, _op: &Operation) -> bool {
         match self.get_intrinsic() {
             None => true,

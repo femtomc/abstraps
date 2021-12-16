@@ -87,7 +87,7 @@ impl<'b> Iterator for ImmutableBlockIterator<'b> {
 
 impl Region {
     /// Get an immutable iterator over basic blocks.
-    fn block_iter(&self, id: usize) -> ImmutableBlockIterator {
+    pub fn block_iter(&self, id: usize) -> ImmutableBlockIterator {
         let ks = match self {
             Region::Directed(ssacfg) => ssacfg.get_block_vars(id),
             Region::Undirected(graph) => graph.get_block_vars(),

@@ -53,12 +53,20 @@ where
     Self: std::fmt::Debug,
 {
     fn verify(&self, op: &dyn SupportsVerification) -> anyhow::Result<()>;
+
+    fn get_attribute<'a>(&self, _op: &'a Operation) -> anyhow::Result<&'a Box<dyn Attribute>> {
+        bail!(format!(
+            "(Fallback) Failed to get attribute associated with {:?}.",
+            self
+        ))
+    }
+
     fn get_attribute_mut<'a>(
         &self,
-        _op: &'a mut OperationBuilder,
+        _op: &'a mut Operation,
     ) -> anyhow::Result<&'a mut Box<dyn Attribute>> {
         bail!(format!(
-            "Failed to get attribute associated with {:?}.",
+            "(Fallback) Failed to get attribute associated with {:?}.",
             self
         ))
     }
@@ -86,16 +94,9 @@ where
     Self: std::fmt::Debug,
 {
 }
-
-impl fmt::Display for dyn AttributeValue {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
 impl<T> AttributeValue for T where T: std::fmt::Debug {}
 
-pub trait Attribute: Downcast
+pub trait Attribute: Downcast + std::fmt::Display
 where
     Self: std::fmt::Debug,
 {
@@ -104,19 +105,13 @@ where
 }
 impl_downcast!(Attribute);
 
-impl fmt::Display for dyn Attribute {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let v = self.get_value();
-        write!(f, "{:?}", v)
-    }
-}
-
 pub trait SupportsVerification
 where
     Self: std::fmt::Debug,
 {
     fn get_intrinsic(&self) -> &Box<dyn Intrinsic>;
     fn get_attributes(&self) -> &HashMap<String, Box<dyn Attribute>>;
+    fn get_regions(&self) -> &[Region];
 }
 
 #[derive(Debug)]
@@ -135,6 +130,10 @@ impl SupportsVerification for Operation {
 
     fn get_attributes(&self) -> &HashMap<String, Box<dyn Attribute>> {
         &self.attributes
+    }
+
+    fn get_regions(&self) -> &[Region] {
+        &self.regions
     }
 }
 
@@ -225,22 +224,32 @@ impl fmt::Display for Operation {
             }
             write!(f, ")")?;
         }
+        let mut fmter = indented(f).with_str(" ");
         if !self.attributes.is_empty() {
-            write!(f, " {{ ")?;
+            write!(fmter, " [")?;
             let l = self.attributes.len();
             for (ind, attr) in self.attributes.iter().enumerate() {
                 match l - 1 == ind {
-                    true => write!(f, "{} = {}", attr.0, attr.1)?,
-                    _ => write!(f, "{} = {}, ", attr.0, attr.1)?,
+                    true => write!(
+                        indented(&mut fmter).with_str(" "),
+                        " {} = {}",
+                        attr.0,
+                        attr.1
+                    )?,
+                    _ => write!(
+                        indented(&mut fmter).with_str(" "),
+                        "{} = {},\n",
+                        attr.0,
+                        attr.1
+                    )?,
                 };
             }
-            write!(f, " }}")?;
+            write!(fmter, " ]")?;
         }
+        let mut fmter1 = indented(&mut fmter).with_str(" ");
         if !self.regions.is_empty() {
             for r in self.regions.iter() {
-                writeln!(f, " {{")?;
-                write!(indented(f).with_str("  "), "{}", r)?;
-                write!(f, "}}")?;
+                write!(indented(&mut fmter1).with_str(" "), "\n{}", r)?;
             }
         }
         Ok(())
