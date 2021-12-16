@@ -1,12 +1,12 @@
 use crate::core::ir::{Intrinsic, Operation};
 use anyhow;
-use anyhow::bail;
+
 use std::marker::PhantomData;
 
 pub trait OperationPass {
     fn apply(&self, op: &mut Operation) -> anyhow::Result<()>;
 
-    fn check_valid(&self, op: &Operation) -> bool {
+    fn check_valid(&self, _op: &Operation) -> bool {
         true
     }
 }
@@ -16,12 +16,12 @@ where
     T: Intrinsic,
 {
     fn get_intrinsic(&self) -> Option<Box<dyn Intrinsic>> {
-        return None;
+        None
     }
 
     fn apply(&self, op: &mut Operation) -> anyhow::Result<()>;
 
-    fn check_valid(&self, op: &Operation) -> bool {
+    fn check_valid(&self, _op: &Operation) -> bool {
         match self.get_intrinsic() {
             None => true,
             Some(v) => v.is::<T>(),
@@ -62,13 +62,13 @@ where
 {
     /// See the toplevel `Operation` first, and then
     /// moves downwards towards the leaves.
-    fn prewalk(&self, op: &mut Operation) -> anyhow::Result<()> {
+    fn prewalk(&self, _op: &mut Operation) -> anyhow::Result<()> {
         Ok(())
     }
 
     /// See the leaves of the `Operation` tree first, and then
     /// moves upwards.
-    fn postwalk(&self, op: &mut Operation) -> anyhow::Result<()> {
+    fn postwalk(&self, _op: &mut Operation) -> anyhow::Result<()> {
         Ok(())
     }
 }

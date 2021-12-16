@@ -24,7 +24,7 @@ use alloc::vec::Vec;
 use anyhow;
 use anyhow::bail;
 use downcast_rs::{impl_downcast, Downcast};
-use std::any::{Any, TypeId};
+
 use std::collections::HashMap;
 use std::fmt;
 use {indenter::indented, std::fmt::Write};
@@ -55,7 +55,7 @@ where
     fn verify(&self, op: &dyn SupportsVerification) -> anyhow::Result<()>;
     fn get_attribute_mut<'a>(
         &self,
-        op: &'a mut OperationBuilder,
+        _op: &'a mut OperationBuilder,
     ) -> anyhow::Result<&'a mut Box<dyn Attribute>> {
         bail!(format!(
             "Failed to get attribute associated with {:?}.",
@@ -134,7 +134,7 @@ impl SupportsVerification for Operation {
     }
 
     fn get_attributes(&self) -> &HashMap<String, Box<dyn Attribute>> {
-        return &self.attributes;
+        &self.attributes
     }
 }
 
@@ -207,7 +207,7 @@ impl Operation {
 
 impl Operation {
     pub fn get_attributes_mut(&mut self) -> &mut HashMap<String, Box<dyn Attribute>> {
-        return &mut self.attributes;
+        &mut self.attributes
     }
 }
 

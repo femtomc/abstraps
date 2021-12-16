@@ -47,7 +47,7 @@ impl Graph {
 
     pub fn push_block(&mut self, blk: BasicBlock) -> usize {
         self.blocks = vec![blk];
-        return 0;
+        0
     }
 
     /// Get the vector of `Var` which index into the region block.
@@ -65,7 +65,7 @@ impl Graph {
         let len = self.blocks[0].get_ops().len();
         let bb = &mut self.blocks[0];
         bb.get_ops_mut().push(v);
-        self.defs.push((0 as i32, len as i32));
+        self.defs.push((0_i32, len as i32));
         arg
     }
 

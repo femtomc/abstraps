@@ -1,8 +1,8 @@
-use abstraps;
+
 use abstraps::core::builder::OperationBuilder;
-use abstraps::core::ir::{BasicBlock, Intrinsic, IntrinsicTrait, Var};
+use abstraps::core::ir::{Intrinsic, IntrinsicTrait, Var};
 use abstraps::dialects::builtin::intrinsics::{Func, Module};
-use anyhow;
+
 
 #[derive(Debug)]
 pub struct Add;
@@ -35,9 +35,9 @@ fn builtins_module_operation_1() -> anyhow::Result<()> {
     let mut module = Module.get_builder("foo");
     let mut func = Func.get_builder("new_func");
     let operands = vec![func.push_arg()?, func.push_arg()?];
-    let mut add1 = Add.get_builder(operands);
+    let add1 = Add.get_builder(operands);
     let ret = func.push(add1)?;
-    let mut add2 = Add.get_builder(vec![ret, ret]);
+    let add2 = Add.get_builder(vec![ret, ret]);
     func.push(add2)?;
     module.push(func)?;
     let end = module.finish();

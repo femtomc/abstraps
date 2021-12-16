@@ -1,11 +1,11 @@
-use abstraps;
-use abstraps::core::builder::OperationBuilder;
-use abstraps::core::ir::Intrinsic;
+
+
+
 use abstraps::dialects::builtin::intrinsics::{Func, Module};
 
 #[test]
 fn builtins_module_operation_0() {
-    let mut builder = Module.get_builder("foo");
+    let builder = Module.get_builder("foo");
     let op = builder.finish();
     assert!(op.is_ok());
     println!("{}", op.unwrap());

@@ -42,7 +42,7 @@ impl SupportsVerification for OperationBuilder {
     }
 
     fn get_attributes(&self) -> &HashMap<String, Box<dyn Attribute>> {
-        return &self.attributes;
+        &self.attributes
     }
 }
 
@@ -75,7 +75,7 @@ impl OperationBuilder {
         self.operands = args;
     }
 
-    pub fn get_operands(&self, arg: Var) -> Vec<Var> {
+    pub fn get_operands(&self, _arg: Var) -> Vec<Var> {
         self.operands.to_vec()
     }
 
@@ -110,7 +110,7 @@ impl OperationBuilder {
     }
 
     pub fn get_attributes_mut(&mut self) -> &mut HashMap<String, Box<dyn Attribute>> {
-        return &mut self.attributes;
+        &mut self.attributes
     }
 
     pub fn push_region(&mut self, r: Region) {
@@ -138,7 +138,7 @@ impl OperationBuilder {
         let cursor = self.cursor;
         let blk = cursor.1 - 1;
         let b = self.get_region().get_block(blk);
-        return b;
+        b
     }
 
     pub fn check_trait<K>(&self) -> Option<anyhow::Result<()>>

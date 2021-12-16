@@ -20,7 +20,7 @@ impl Region {
     pub fn push_arg(&mut self, ind: usize) -> anyhow::Result<Var> {
         match self {
             Region::Directed(ssacfg) => Ok(ssacfg.push_arg(ind)),
-            Region::Undirected(graph) => {
+            Region::Undirected(_graph) => {
                 bail!("Can't push argument onto `Graph` region.")
             }
         }

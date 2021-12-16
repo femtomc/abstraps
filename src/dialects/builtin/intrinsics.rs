@@ -1,6 +1,6 @@
 use crate::core::builder::OperationBuilder;
 use crate::core::graph::Graph;
-use crate::core::ir::{BasicBlock, Intrinsic, IntrinsicTrait, Var};
+use crate::core::ir::{BasicBlock, Intrinsic, IntrinsicTrait};
 use crate::core::region::Region;
 use crate::core::ssacfg::SSACFG;
 use crate::dialects::builtin::attributes::{Symbol, SymbolTable};

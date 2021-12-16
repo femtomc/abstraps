@@ -1,11 +1,11 @@
-use abstraps;
-use abstraps::core::builder::OperationBuilder;
-use abstraps::core::ir::{Intrinsic, IntrinsicTrait, Var};
+
+
+use abstraps::core::ir::{IntrinsicTrait, Var};
 use abstraps::dialects::builtin::attributes::SymbolTable;
-use abstraps::dialects::builtin::intrinsics::{Func, Module};
-use abstraps::dialects::builtin::traits::{ProvidesSymbol, ProvidesSymbolTable};
-use anyhow;
-use anyhow::bail;
+use abstraps::dialects::builtin::intrinsics::{Module};
+use abstraps::dialects::builtin::traits::{ProvidesSymbolTable};
+
+
 
 // This shows usage of the "trait" interface
 // (which, again, is similar to the MLIR version)
@@ -19,10 +19,10 @@ fn operation_traits_module_operation_0() -> anyhow::Result<()> {
     let mut builder = Module.get_builder("foo");
     let tr = builder.get_trait::<ProvidesSymbolTable>()?;
     let attr = tr.get_attribute_mut(&mut builder)?;
-    let mut q = attr.downcast_mut::<SymbolTable>().unwrap();
+    let q = attr.downcast_mut::<SymbolTable>().unwrap();
     q.insert("this", Var::new(1));
     println!("{:?}", q);
-    let mut op = builder.finish();
+    let op = builder.finish();
     assert!(op.is_ok());
     Ok(())
 }

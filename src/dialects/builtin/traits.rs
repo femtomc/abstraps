@@ -13,7 +13,7 @@ impl IntrinsicTrait for ProvidesSymbolTable {
         }
         let attr = op.get_attributes().get("symbols").unwrap();
         match attr.downcast_ref::<SymbolTable>() {
-            Some(v) => Ok(()),
+            Some(_v) => Ok(()),
             None => bail!("The attribute value indexed by `symbols` is not a `SymbolTable`."),
         }
     }
@@ -39,7 +39,7 @@ impl IntrinsicTrait for ProvidesSymbol {
         }
         let attr = op.get_attributes().get("symbol").unwrap();
         match attr.downcast_ref::<Symbol>() {
-            Some(v) => Ok(()),
+            Some(_v) => Ok(()),
             None => bail!("The attribute value indexed by `symbol` is not a `Symbol`."),
         }
     }
