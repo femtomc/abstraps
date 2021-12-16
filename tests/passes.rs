@@ -3,6 +3,7 @@ use abstraps::core::ir::{Intrinsic, IntrinsicTrait, Var};
 use abstraps::core::pass_manager::OperationPass;
 use abstraps::dialects::builtin::intrinsics::{Func, Module};
 use abstraps::dialects::builtin::passes::PopulateSymbolTablePass;
+use abstraps::dialects::std::intrinsics::{Call, Return};
 
 #[derive(Debug)]
 pub struct Add;
@@ -44,7 +45,11 @@ fn builtins_module_operation_1() -> anyhow::Result<()> {
     let add1 = Add.get_builder(operands);
     let ret = func2.push(add1)?;
     let add2 = Add.get_builder(vec![ret, ret]);
-    func2.push(add2)?;
+    let v = func2.push(add2)?;
+    let call2 = Call.get_builder("new_func1", vec![v, v]);
+    let v = func2.push(call2)?;
+    let ret2 = Return.get_builder(vec![v]);
+    func2.push(ret2)?;
     module.push(func1)?;
     module.push(func2)?;
     let end = module.finish();

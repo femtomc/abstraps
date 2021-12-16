@@ -1,4 +1,4 @@
-use crate::core::ir::{Intrinsic, Operation};
+use crate::core::ir::{Intrinsic, Operation, SupportsVerification};
 use anyhow;
 
 use std::marker::PhantomData;
@@ -15,21 +15,16 @@ pub trait IntrinsicPass<T>: OperationPass
 where
     T: Intrinsic,
 {
-    fn get_intrinsic(&self) -> Option<Box<dyn Intrinsic>> {
-        None
-    }
-
-    fn check_valid(&self, _op: &Operation) -> bool {
-        match self.get_intrinsic() {
-            None => true,
-            Some(v) => v.is::<T>(),
-        }
+    fn check_valid(&self, op: &Operation) -> bool {
+        return op.get_intrinsic().is::<T>();
     }
 }
 
 pub trait PassManager {
-    fn prewalk(&self, op: &mut Operation) -> anyhow::Result<()>;
-    fn postwalk(&self, op: &mut Operation) -> anyhow::Result<()>;
+    fn prewalk(&mut self, op: &mut Operation) -> anyhow::Result<()>;
+    fn postwalk(&mut self, op: &mut Operation) -> anyhow::Result<()>;
+    fn push(&mut self, pass: Box<dyn OperationPass>) -> anyhow::Result<()>;
+    fn nest(&mut self, pass: Box<dyn PassManager>) -> anyhow::Result<()>;
 }
 
 struct OperationPassManager<T>
@@ -60,13 +55,21 @@ where
 {
     /// See the toplevel `Operation` first, and then
     /// moves downwards towards the leaves.
-    fn prewalk(&self, _op: &mut Operation) -> anyhow::Result<()> {
+    fn prewalk(&mut self, _op: &mut Operation) -> anyhow::Result<()> {
         Ok(())
     }
 
     /// See the leaves of the `Operation` tree first, and then
     /// moves upwards.
-    fn postwalk(&self, _op: &mut Operation) -> anyhow::Result<()> {
+    fn postwalk(&mut self, _op: &mut Operation) -> anyhow::Result<()> {
+        Ok(())
+    }
+
+    fn push(&mut self, pass: Box<dyn OperationPass>) -> anyhow::Result<()> {
+        Ok(())
+    }
+
+    fn nest(&mut self, pass: Box<dyn PassManager>) -> anyhow::Result<()> {
         Ok(())
     }
 }

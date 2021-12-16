@@ -1,6 +1,7 @@
 use crate::core::ir::{Attribute, AttributeValue, Var};
 use std::collections::HashMap;
 use std::fmt;
+use yansi::Paint;
 
 #[derive(Debug)]
 pub struct SymbolTable(HashMap<String, Var>);
@@ -12,7 +13,7 @@ impl fmt::Display for SymbolTable {
             if !first {
                 write!(f, ", ");
             }
-            write!(f, ":{} => {}", elem.0, elem.1);
+            write!(f, "{} => {}", Paint::blue(elem.0), elem.1);
             false
         });
         write!(f, " }}")?;
@@ -45,7 +46,7 @@ pub struct Symbol(String);
 
 impl fmt::Display for Symbol {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, ":{}", self.0)
+        write!(f, "{}", Paint::blue(&self.0))
     }
 }
 

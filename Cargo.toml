@@ -12,6 +12,7 @@ license-file = "LICENSE"
 anyhow = "1.0.51"
 downcast-rs = "1.2.0"
 indenter = "0.3.3"
+yansi = "0.5.0"
 
 [build-dependencies]
 bindgen = "0.59.1"

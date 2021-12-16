@@ -1,8 +1,6 @@
-
 use abstraps::core::builder::OperationBuilder;
 use abstraps::core::ir::{Intrinsic, IntrinsicTrait, Var};
 use abstraps::dialects::builtin::intrinsics::{Func, Module};
-
 
 #[derive(Debug)]
 pub struct Add;

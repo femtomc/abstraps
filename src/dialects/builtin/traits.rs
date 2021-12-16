@@ -9,7 +9,7 @@ pub struct ProvidesSymbolTable;
 impl IntrinsicTrait for ProvidesSymbolTable {
     fn verify(&self, op: &dyn SupportsVerification) -> anyhow::Result<()> {
         if !op.get_attributes().contains_key("symbols") {
-            bail!("Operation attribute map does not contain the `symbols` key.")
+            bail!("Operation attributes map does not contain the `symbols` key.")
         }
         let attr = op.get_attributes().get("symbols").unwrap();
         match attr.downcast_ref::<SymbolTable>() {

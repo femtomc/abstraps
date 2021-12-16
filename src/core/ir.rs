@@ -24,9 +24,9 @@ use alloc::vec::Vec;
 use anyhow;
 use anyhow::bail;
 use downcast_rs::{impl_downcast, Downcast};
-
 use std::collections::HashMap;
 use std::fmt;
+use yansi::Paint;
 use {indenter::indented, std::fmt::Write};
 
 #[derive(Clone, Debug, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -44,7 +44,11 @@ impl Var {
 
 impl fmt::Display for Var {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "%{}", self.get_id())
+        write!(
+            f,
+            "{}",
+            Paint::white(format!("%{}", self.get_id())).italic()
+        )
     }
 }
 
@@ -85,7 +89,12 @@ impl_downcast!(Intrinsic);
 
 impl fmt::Display for dyn Intrinsic {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}.{}", self.get_namespace(), self.get_name())
+        write!(
+            f,
+            "{}.{}",
+            Paint::green(self.get_namespace()).underline(),
+            Paint::green(self.get_name()).bold()
+        )
     }
 }
 
@@ -226,20 +235,20 @@ impl fmt::Display for Operation {
         }
         let mut fmter = indented(f).with_str(" ");
         if !self.attributes.is_empty() {
-            write!(fmter, " [")?;
+            write!(fmter, "\n[")?;
             let l = self.attributes.len();
             for (ind, attr) in self.attributes.iter().enumerate() {
                 match l - 1 == ind {
                     true => write!(
                         indented(&mut fmter).with_str(" "),
-                        " {} = {}",
-                        attr.0,
+                        " {}: {}",
+                        Paint::magenta(attr.0).italic(),
                         attr.1
                     )?,
                     _ => write!(
                         indented(&mut fmter).with_str(" "),
-                        "{} = {},\n",
-                        attr.0,
+                        "{}: {},\n",
+                        Paint::magenta(attr.0).italic(),
                         attr.1
                     )?,
                 };

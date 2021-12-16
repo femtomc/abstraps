@@ -3,6 +3,7 @@ use crate::core::ir::{BasicBlock, Operation, Var};
 use crate::core::ssacfg::SSACFG;
 use anyhow::bail;
 use std::fmt;
+use yansi::Paint;
 use {indenter::indented, std::fmt::Write};
 
 /// A close copy of the equivalent concept in MLIR.
@@ -105,7 +106,7 @@ impl fmt::Display for Region {
         match self {
             Region::Directed(ssacfg) => {
                 for ind in 0..ssacfg.get_blocks().len() {
-                    write!(f, "{}: ", ind)?;
+                    write!(f, "{}", Paint::white(format!("{}: ", ind)).bold())?;
                     let b = &ssacfg.get_blocks()[ind];
                     let boperands = &b.get_operands();
                     if !boperands.is_empty() {
