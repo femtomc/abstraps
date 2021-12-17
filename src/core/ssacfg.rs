@@ -1,8 +1,5 @@
 use crate::core::ir::{BasicBlock, Operation, Var};
-
 use alloc::vec::Vec;
-
-
 
 #[derive(Debug)]
 pub struct SSACFG {

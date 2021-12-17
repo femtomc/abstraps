@@ -1,8 +1,6 @@
-use crate::core::builder::OperationBuilder;
-use crate::core::graph::Graph;
-use crate::core::ir::{BasicBlock, Intrinsic, IntrinsicTrait};
-use crate::core::region::Region;
-use crate::core::ssacfg::SSACFG;
+use crate::core::{
+    BasicBlock, Graph, Intrinsic, IntrinsicTrait, LocationInfo, OperationBuilder, Region, SSACFG,
+};
 use crate::dialects::builtin::attributes::{Symbol, SymbolTable};
 use crate::dialects::builtin::traits::{ProvidesSymbol, ProvidesSymbolTable};
 
@@ -26,9 +24,9 @@ impl Intrinsic for Module {
 }
 
 impl Module {
-    pub fn get_builder(&self, name: &str) -> OperationBuilder {
+    pub fn get_builder(&self, name: &str, loc: Option<LocationInfo>) -> OperationBuilder {
         let intr = Box::new(Module);
-        let mut b = OperationBuilder::default(intr);
+        let mut b = OperationBuilder::default(intr, loc);
         let r = Region::Undirected(Graph::default());
         b.push_region(r);
         let blk = BasicBlock::default();
@@ -60,9 +58,9 @@ impl Intrinsic for Func {
 }
 
 impl Func {
-    pub fn get_builder(&self, name: &str) -> OperationBuilder {
+    pub fn get_builder(&self, name: &str, loc: Option<LocationInfo>) -> OperationBuilder {
         let intr = Box::new(Func);
-        let mut b = OperationBuilder::default(intr);
+        let mut b = OperationBuilder::default(intr, loc);
         let r = Region::Directed(SSACFG::default());
         b.push_region(r);
         let blk = BasicBlock::default();

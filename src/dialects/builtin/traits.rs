@@ -1,5 +1,4 @@
-use crate::core::builder::OperationBuilder;
-use crate::core::ir::{Attribute, IntrinsicTrait, Operation, SupportsVerification};
+use crate::core::{Attribute, IntrinsicTrait, Operation, OperationBuilder, SupportsVerification};
 use crate::dialects::builtin::attributes::{Symbol, SymbolTable};
 use anyhow::bail;
 

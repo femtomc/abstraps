@@ -8,6 +8,7 @@
 
 */
 
+use crate::core::diagnostics::LocationInfo;
 use crate::core::ir::{
     Attribute, BasicBlock, Intrinsic, IntrinsicTrait, Operation, SupportsVerification, Var,
 };
@@ -16,8 +17,6 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use anyhow::{bail, Result};
 use std::collections::HashMap;
-use std::fmt;
-use {indenter::indented, std::fmt::Write};
 
 #[derive(Debug)]
 pub enum BuilderError {
@@ -29,6 +28,7 @@ pub enum BuilderError {
 pub struct OperationBuilder {
     latest: Vec<Var>,
     cursor: (usize, usize),
+    location: Option<LocationInfo>,
     intrinsic: Box<dyn Intrinsic>,
     operands: Vec<Var>,
     attributes: HashMap<String, Box<dyn Attribute>>,
@@ -51,11 +51,12 @@ impl SupportsVerification for OperationBuilder {
 }
 
 impl OperationBuilder {
-    pub fn default(intr: Box<dyn Intrinsic>) -> OperationBuilder {
+    pub fn default(intr: Box<dyn Intrinsic>, loc: Option<LocationInfo>) -> OperationBuilder {
         OperationBuilder {
             latest: Vec::new(),
             cursor: (0, 0),
             intrinsic: intr,
+            location: loc,
             operands: Vec::new(),
             attributes: HashMap::new(),
             regions: Vec::new(),
@@ -71,6 +72,10 @@ impl OperationBuilder {
         &self.intrinsic
     }
 
+    pub fn get_location(&self) -> &Option<LocationInfo> {
+        &self.location
+    }
+
     pub fn push_operand(&mut self, arg: Var) {
         self.operands.push(arg);
     }
@@ -79,7 +84,7 @@ impl OperationBuilder {
         self.operands = args;
     }
 
-    pub fn get_operands(&self, _arg: Var) -> Vec<Var> {
+    pub fn get_operands(&self) -> Vec<Var> {
         self.operands.to_vec()
     }
 
@@ -198,47 +203,12 @@ impl OperationBuilder {
 impl OperationBuilder {
     pub fn finish(self) -> Result<Operation> {
         Ok(Operation::new(
+            self.location,
             self.intrinsic,
             self.operands,
             self.attributes,
             self.regions,
             self.successors,
         ))
-    }
-}
-
-impl fmt::Display for OperationBuilder {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.intrinsic)?;
-        if !self.operands.is_empty() {
-            write!(f, "(")?;
-            let l = self.operands.len();
-            for (ind, arg) in self.operands.iter().enumerate() {
-                match l - 1 == ind {
-                    true => write!(f, "{}", arg)?,
-                    _ => write!(f, "{}, ", arg)?,
-                };
-            }
-            write!(f, ")")?;
-        }
-        if !self.attributes.is_empty() {
-            write!(f, " {{ ")?;
-            let l = self.attributes.len();
-            for (ind, attr) in self.attributes.iter().enumerate() {
-                match l - 1 == ind {
-                    true => write!(f, "{} = {}", attr.0, attr.1)?,
-                    _ => write!(f, "{} = {}, ", attr.0, attr.1)?,
-                };
-            }
-            write!(f, " }}")?;
-        }
-        if !self.regions.is_empty() {
-            for r in self.regions.iter() {
-                writeln!(f, " {{")?;
-                write!(indented(f).with_str("  "), "{}", r)?;
-                write!(f, "}}")?;
-            }
-        }
-        Ok(())
     }
 }

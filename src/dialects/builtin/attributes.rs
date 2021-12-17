@@ -1,4 +1,4 @@
-use crate::core::ir::{Attribute, AttributeValue, Var};
+use crate::core::{Attribute, AttributeValue, Var};
 use std::collections::HashMap;
 use std::fmt;
 use yansi::Paint;

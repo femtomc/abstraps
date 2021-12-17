@@ -2,9 +2,6 @@ use crate::core::graph::Graph;
 use crate::core::ir::{BasicBlock, Operation, Var};
 use crate::core::ssacfg::SSACFG;
 use anyhow::bail;
-use std::fmt;
-use yansi::Paint;
-use {indenter::indented, std::fmt::Write};
 
 /// A close copy of the equivalent concept in MLIR.
 ///
@@ -97,43 +94,6 @@ impl Region {
             region: self,
             ks,
             state: 0,
-        }
-    }
-}
-
-impl fmt::Display for Region {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Region::Directed(ssacfg) => {
-                for ind in 0..ssacfg.get_blocks().len() {
-                    write!(f, "{}", Paint::white(format!("{}: ", ind)).bold())?;
-                    let b = &ssacfg.get_blocks()[ind];
-                    let boperands = &b.get_operands();
-                    if !boperands.is_empty() {
-                        write!(f, "(")?;
-                        let l = boperands.len();
-                        for (ind, arg) in boperands.iter().enumerate() {
-                            match l - 1 == ind {
-                                true => write!(f, "{}", arg)?,
-                                _ => write!(f, "{}, ", arg)?,
-                            };
-                        }
-                        write!(f, ")")?;
-                    }
-                    writeln!(f)?;
-                    for (v, op) in self.block_iter(ind) {
-                        writeln!(indented(f).with_str("  "), "{} = {}", v, op)?;
-                    }
-                }
-                Ok(())
-            }
-
-            Region::Undirected(_) => {
-                for (v, op) in self.block_iter(0) {
-                    writeln!(indented(f).with_str("  "), "{} = {}", v, op)?;
-                }
-                Ok(())
-            }
         }
     }
 }

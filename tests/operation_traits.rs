@@ -1,4 +1,4 @@
-use abstraps::core::ir::{IntrinsicTrait, Var};
+use abstraps::core::{IntrinsicTrait, LocationInfo, Var};
 use abstraps::dialects::builtin::attributes::SymbolTable;
 use abstraps::dialects::builtin::intrinsics::Module;
 use abstraps::dialects::builtin::traits::ProvidesSymbolTable;
@@ -12,7 +12,7 @@ use abstraps::dialects::builtin::traits::ProvidesSymbolTable;
 
 #[test]
 fn operation_traits_module_operation_0() -> anyhow::Result<()> {
-    let mut builder = Module.get_builder("foo");
+    let mut builder = Module.get_builder("foo", None);
     let o = builder.finish();
     assert!(o.is_ok());
     let mut op = o.unwrap();

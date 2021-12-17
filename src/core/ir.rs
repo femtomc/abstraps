@@ -18,6 +18,7 @@
 */
 
 use crate::core::builder::OperationBuilder;
+use crate::core::diagnostics::LocationInfo;
 use crate::core::region::Region;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -25,9 +26,6 @@ use anyhow;
 use anyhow::bail;
 use downcast_rs::{impl_downcast, Downcast};
 use std::collections::HashMap;
-use std::fmt;
-use yansi::Paint;
-use {indenter::indented, std::fmt::Write};
 
 #[derive(Clone, Debug, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Var(usize);
@@ -39,16 +37,6 @@ impl Var {
 
     pub fn get_id(&self) -> usize {
         self.0
-    }
-}
-
-impl fmt::Display for Var {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            Paint::white(format!("%{}", self.get_id())).italic()
-        )
     }
 }
 
@@ -87,17 +75,6 @@ where
 }
 impl_downcast!(Intrinsic);
 
-impl fmt::Display for dyn Intrinsic {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "{}.{}",
-            Paint::green(self.get_namespace()).underline(),
-            Paint::green(self.get_name()).bold()
-        )
-    }
-}
-
 pub trait AttributeValue
 where
     Self: std::fmt::Debug,
@@ -125,6 +102,7 @@ where
 
 #[derive(Debug)]
 pub struct Operation {
+    location: Option<LocationInfo>,
     intrinsic: Box<dyn Intrinsic>,
     operands: Vec<Var>,
     attributes: HashMap<String, Box<dyn Attribute>>,
@@ -148,6 +126,7 @@ impl SupportsVerification for Operation {
 
 impl Operation {
     pub fn new(
+        location: Option<LocationInfo>,
         intrinsic: Box<dyn Intrinsic>,
         operands: Vec<Var>,
         attributes: HashMap<String, Box<dyn Attribute>>,
@@ -155,12 +134,21 @@ impl Operation {
         successors: Vec<BasicBlock>,
     ) -> Operation {
         Operation {
+            location,
             intrinsic,
             operands,
             attributes,
             regions,
             successors,
         }
+    }
+
+    pub fn get_location(&self) -> &Option<LocationInfo> {
+        &self.location
+    }
+
+    pub fn get_operands(&self) -> Vec<Var> {
+        self.operands.to_vec()
     }
 
     // This is absolutely crazy that this is required -
@@ -216,52 +204,6 @@ impl Operation {
 impl Operation {
     pub fn get_attributes_mut(&mut self) -> &mut HashMap<String, Box<dyn Attribute>> {
         &mut self.attributes
-    }
-}
-
-impl fmt::Display for Operation {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.intrinsic)?;
-        if !self.operands.is_empty() {
-            write!(f, "(")?;
-            let l = self.operands.len();
-            for (ind, arg) in self.operands.iter().enumerate() {
-                match l - 1 == ind {
-                    true => write!(f, "{}", arg)?,
-                    _ => write!(f, "{}, ", arg)?,
-                };
-            }
-            write!(f, ")")?;
-        }
-        let mut fmter = indented(f).with_str(" ");
-        if !self.attributes.is_empty() {
-            write!(fmter, "\n[")?;
-            let l = self.attributes.len();
-            for (ind, attr) in self.attributes.iter().enumerate() {
-                match l - 1 == ind {
-                    true => write!(
-                        indented(&mut fmter).with_str(" "),
-                        " {}: {}",
-                        Paint::magenta(attr.0).italic(),
-                        attr.1
-                    )?,
-                    _ => write!(
-                        indented(&mut fmter).with_str(" "),
-                        "{}: {},\n",
-                        Paint::magenta(attr.0).italic(),
-                        attr.1
-                    )?,
-                };
-            }
-            write!(fmter, " ]")?;
-        }
-        let mut fmter1 = indented(&mut fmter).with_str(" ");
-        if !self.regions.is_empty() {
-            for r in self.regions.iter() {
-                write!(indented(&mut fmter1).with_str(" "), "\n{}", r)?;
-            }
-        }
-        Ok(())
     }
 }
 

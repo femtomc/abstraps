@@ -1,8 +1,7 @@
-use crate::core::builder::OperationBuilder;
-use crate::core::graph::Graph;
-use crate::core::ir::{BasicBlock, Intrinsic, IntrinsicTrait, Var};
-use crate::core::region::Region;
-use crate::core::ssacfg::SSACFG;
+use crate::core::{
+    BasicBlock, Graph, Intrinsic, IntrinsicTrait, LocationInfo, OperationBuilder, Region, Var,
+    SSACFG,
+};
 use crate::dialects::builtin::attributes::Symbol;
 use crate::dialects::builtin::traits::ProvidesSymbol;
 
@@ -26,9 +25,14 @@ impl Intrinsic for Call {
 }
 
 impl Call {
-    pub fn get_builder(&self, name: &str, operands: Vec<Var>) -> OperationBuilder {
+    pub fn get_builder(
+        &self,
+        name: &str,
+        operands: Vec<Var>,
+        loc: Option<LocationInfo>,
+    ) -> OperationBuilder {
         let intr = Box::new(Call);
-        let mut b = OperationBuilder::default(intr);
+        let mut b = OperationBuilder::default(intr, loc);
         let sym_name = Symbol::new(name);
         b.set_operands(operands);
         b.insert_attr("symbol", Box::new(sym_name));
@@ -55,9 +59,9 @@ impl Intrinsic for Return {
 }
 
 impl Return {
-    pub fn get_builder(&self, operands: Vec<Var>) -> OperationBuilder {
+    pub fn get_builder(&self, operands: Vec<Var>, loc: Option<LocationInfo>) -> OperationBuilder {
         let intr = Box::new(Return);
-        let mut b = OperationBuilder::default(intr);
+        let mut b = OperationBuilder::default(intr, loc);
         b.set_operands(operands);
         b
     }

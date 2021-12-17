@@ -1,6 +1,7 @@
-use abstraps::core::builder::OperationBuilder;
-use abstraps::core::ir::{Intrinsic, IntrinsicTrait, Var};
-use abstraps::core::pass_manager::OperationPass;
+use abstraps::core::{
+    Intrinsic, IntrinsicTrait, LocationInfo, OperationBuilder, OperationPass, OperationPassManager,
+    PassManager, Var,
+};
 use abstraps::dialects::builtin::intrinsics::{Func, Module};
 use abstraps::dialects::builtin::passes::PopulateSymbolTablePass;
 use abstraps::dialects::std::intrinsics::{Call, Return};
@@ -23,9 +24,9 @@ impl Intrinsic for Add {
 }
 
 impl Add {
-    pub fn get_builder(&self, operands: Vec<Var>) -> OperationBuilder {
+    pub fn get_builder(&self, operands: Vec<Var>, loc: Option<LocationInfo>) -> OperationBuilder {
         let intr = Box::new(Add);
-        let mut b = OperationBuilder::default(intr);
+        let mut b = OperationBuilder::default(intr, loc);
         b.set_operands(operands);
         b
     }
@@ -33,30 +34,31 @@ impl Add {
 
 #[test]
 fn builtins_module_operation_1() -> anyhow::Result<()> {
-    let mut module = Module.get_builder("foo");
-    let mut func1 = Func.get_builder("new_func1");
+    let mut module = Module.get_builder("foo", None);
+    let mut func1 = Func.get_builder("new_func1", None);
     let operands = vec![func1.push_arg()?, func1.push_arg()?];
-    let add1 = Add.get_builder(operands);
+    let add1 = Add.get_builder(operands, None);
     let ret = func1.push(add1)?;
-    let add2 = Add.get_builder(vec![ret, ret]);
+    let add2 = Add.get_builder(vec![ret, ret], None);
     func1.push(add2)?;
-    let mut func2 = Func.get_builder("new_func2");
+    let mut func2 = Func.get_builder("new_func2", None);
     let operands = vec![func2.push_arg()?, func2.push_arg()?];
-    let add1 = Add.get_builder(operands);
+    let add1 = Add.get_builder(operands, None);
     let ret = func2.push(add1)?;
-    let add2 = Add.get_builder(vec![ret, ret]);
+    let add2 = Add.get_builder(vec![ret, ret], None);
     let v = func2.push(add2)?;
-    let call2 = Call.get_builder("new_func1", vec![v, v]);
+    let call2 = Call.get_builder("new_func1", vec![v, v], None);
     let v = func2.push(call2)?;
-    let ret2 = Return.get_builder(vec![v]);
+    let ret2 = Return.get_builder(vec![v], None);
     func2.push(ret2)?;
     module.push(func1)?;
     module.push(func2)?;
     let end = module.finish();
     assert!(end.is_ok());
     let mut op = end.unwrap();
-    let pass = PopulateSymbolTablePass;
-    pass.apply(&mut op).unwrap();
+    let mut pm = OperationPassManager::<Module>::new();
+    pm.push(Box::new(PopulateSymbolTablePass));
+    pm.prewalk(&mut op).unwrap();
     println!("{}", op);
     Ok(())
 }

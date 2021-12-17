@@ -1,5 +1,4 @@
-use abstraps::core::builder::OperationBuilder;
-use abstraps::core::ir::{Intrinsic, IntrinsicTrait, Var};
+use abstraps::core::{Intrinsic, IntrinsicTrait, LocationInfo, OperationBuilder, Var};
 use abstraps::dialects::builtin::intrinsics::{Func, Module};
 
 #[derive(Debug)]
@@ -20,9 +19,9 @@ impl Intrinsic for Add {
 }
 
 impl Add {
-    pub fn get_builder(&self, operands: Vec<Var>) -> OperationBuilder {
+    pub fn get_builder(&self, operands: Vec<Var>, loc: Option<LocationInfo>) -> OperationBuilder {
         let intr = Box::new(Add);
-        let mut b = OperationBuilder::default(intr);
+        let mut b = OperationBuilder::default(intr, loc);
         b.set_operands(operands);
         b
     }
@@ -30,12 +29,12 @@ impl Add {
 
 #[test]
 fn builtins_module_operation_1() -> anyhow::Result<()> {
-    let mut module = Module.get_builder("foo");
-    let mut func = Func.get_builder("new_func");
+    let mut module = Module.get_builder("foo", None);
+    let mut func = Func.get_builder("new_func", None);
     let operands = vec![func.push_arg()?, func.push_arg()?];
-    let add1 = Add.get_builder(operands);
+    let add1 = Add.get_builder(operands, None);
     let ret = func.push(add1)?;
-    let add2 = Add.get_builder(vec![ret, ret]);
+    let add2 = Add.get_builder(vec![ret, ret], None);
     func.push(add2)?;
     module.push(func)?;
     let end = module.finish();
