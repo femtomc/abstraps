@@ -25,7 +25,7 @@ impl fmt::Display for LocationInfo {
 use crate::core::ir::Var;
 impl fmt::Display for Var {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", Paint::white(format!("%{}", self.get_id())))
+        write!(f, "%{}", self.get_id())
     }
 }
 
