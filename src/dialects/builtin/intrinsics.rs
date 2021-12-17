@@ -24,7 +24,7 @@ impl Intrinsic for Module {
 }
 
 impl Module {
-    pub fn get_builder(&self, name: &str, loc: Option<LocationInfo>) -> OperationBuilder {
+    pub fn get_builder(&self, name: &str, loc: LocationInfo) -> OperationBuilder {
         let intr = Box::new(Module);
         let mut b = OperationBuilder::default(intr, loc);
         let r = Region::Undirected(Graph::default());
@@ -58,7 +58,7 @@ impl Intrinsic for Func {
 }
 
 impl Func {
-    pub fn get_builder(&self, name: &str, loc: Option<LocationInfo>) -> OperationBuilder {
+    pub fn get_builder(&self, name: &str, loc: LocationInfo) -> OperationBuilder {
         let intr = Box::new(Func);
         let mut b = OperationBuilder::default(intr, loc);
         let r = Region::Directed(SSACFG::default());

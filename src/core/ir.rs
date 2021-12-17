@@ -102,7 +102,7 @@ where
 
 #[derive(Debug)]
 pub struct Operation {
-    location: Option<LocationInfo>,
+    location: LocationInfo,
     intrinsic: Box<dyn Intrinsic>,
     operands: Vec<Var>,
     attributes: HashMap<String, Box<dyn Attribute>>,
@@ -126,7 +126,7 @@ impl SupportsVerification for Operation {
 
 impl Operation {
     pub fn new(
-        location: Option<LocationInfo>,
+        location: LocationInfo,
         intrinsic: Box<dyn Intrinsic>,
         operands: Vec<Var>,
         attributes: HashMap<String, Box<dyn Attribute>>,
@@ -143,7 +143,7 @@ impl Operation {
         }
     }
 
-    pub fn get_location(&self) -> &Option<LocationInfo> {
+    pub fn get_location(&self) -> &LocationInfo {
         &self.location
     }
 

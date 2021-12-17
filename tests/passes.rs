@@ -24,7 +24,7 @@ impl Intrinsic for Add {
 }
 
 impl Add {
-    pub fn get_builder(&self, operands: Vec<Var>, loc: Option<LocationInfo>) -> OperationBuilder {
+    pub fn get_builder(&self, operands: Vec<Var>, loc: LocationInfo) -> OperationBuilder {
         let intr = Box::new(Add);
         let mut b = OperationBuilder::default(intr, loc);
         b.set_operands(operands);
@@ -34,22 +34,22 @@ impl Add {
 
 #[test]
 fn builtins_module_operation_1() -> anyhow::Result<()> {
-    let mut module = Module.get_builder("foo", None);
-    let mut func1 = Func.get_builder("new_func1", None);
+    let mut module = Module.get_builder("foo", LocationInfo::Unknown);
+    let mut func1 = Func.get_builder("new_func1", LocationInfo::Unknown);
     let operands = vec![func1.push_arg()?, func1.push_arg()?];
-    let add1 = Add.get_builder(operands, None);
+    let add1 = Add.get_builder(operands, LocationInfo::Unknown);
     let ret = func1.push(add1)?;
-    let add2 = Add.get_builder(vec![ret, ret], None);
+    let add2 = Add.get_builder(vec![ret, ret], LocationInfo::Unknown);
     func1.push(add2)?;
-    let mut func2 = Func.get_builder("new_func2", None);
+    let mut func2 = Func.get_builder("new_func2", LocationInfo::Unknown);
     let operands = vec![func2.push_arg()?, func2.push_arg()?];
-    let add1 = Add.get_builder(operands, None);
+    let add1 = Add.get_builder(operands, LocationInfo::Unknown);
     let ret = func2.push(add1)?;
-    let add2 = Add.get_builder(vec![ret, ret], None);
+    let add2 = Add.get_builder(vec![ret, ret], LocationInfo::Unknown);
     let v = func2.push(add2)?;
-    let call2 = Call.get_builder("new_func1", vec![v, v], None);
+    let call2 = Call.get_builder("new_func1", vec![v, v], LocationInfo::Unknown);
     let v = func2.push(call2)?;
-    let ret2 = Return.get_builder(vec![v], None);
+    let ret2 = Return.get_builder(vec![v], LocationInfo::Unknown);
     func2.push(ret2)?;
     module.push(func1)?;
     module.push(func2)?;

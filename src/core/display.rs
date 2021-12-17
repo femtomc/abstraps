@@ -7,6 +7,9 @@ use crate::core::diagnostics::LocationInfo;
 impl fmt::Display for LocationInfo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            LocationInfo::Unknown => {
+                write!(f, "{}", Paint::magenta(" (<unknown location>)").dimmed())
+            }
             LocationInfo::FileLineCol(file, line, col) => {
                 write!(
                     f,
@@ -14,6 +17,7 @@ impl fmt::Display for LocationInfo {
                     Paint::magenta(format!("<{} @ {}:{}>", file, line, col)).dimmed()
                 )
             }
+            _ => Ok(()),
         }
     }
 }
@@ -90,11 +94,7 @@ impl fmt::Display for Operation {
             }
             write!(f, ")")?;
         }
-        match &self.get_location() {
-            None => write!(f, "{}", Paint::magenta(" (<unknown location>)").dimmed()),
-            Some(loc) => write!(f, "{}", Paint::magenta(format!(" ({})", loc)).dimmed()),
-        };
-
+        write!(f, "{}", self.get_location())?;
         let mut fmter = indented(f).with_str(" ");
         if !self.get_attributes().is_empty() {
             write!(fmter, "\n[")?;
@@ -130,10 +130,7 @@ impl fmt::Display for Operation {
 use crate::core::builder::OperationBuilder;
 impl fmt::Display for OperationBuilder {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match &self.get_location() {
-            None => write!(f, "{}", Paint::magenta("<unknown location>")),
-            Some(loc) => write!(f, "{}\n", loc),
-        };
+        write!(f, "{}", self.get_location())?;
         write!(f, "{}", self.get_intrinsic())?;
         if !self.get_operands().is_empty() {
             write!(f, "(")?;

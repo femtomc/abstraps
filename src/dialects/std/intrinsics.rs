@@ -29,7 +29,7 @@ impl Call {
         &self,
         name: &str,
         operands: Vec<Var>,
-        loc: Option<LocationInfo>,
+        loc: LocationInfo,
     ) -> OperationBuilder {
         let intr = Box::new(Call);
         let mut b = OperationBuilder::default(intr, loc);
@@ -59,7 +59,7 @@ impl Intrinsic for Return {
 }
 
 impl Return {
-    pub fn get_builder(&self, operands: Vec<Var>, loc: Option<LocationInfo>) -> OperationBuilder {
+    pub fn get_builder(&self, operands: Vec<Var>, loc: LocationInfo) -> OperationBuilder {
         let intr = Box::new(Return);
         let mut b = OperationBuilder::default(intr, loc);
         b.set_operands(operands);

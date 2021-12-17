@@ -28,7 +28,7 @@ pub enum BuilderError {
 pub struct OperationBuilder {
     latest: Vec<Var>,
     cursor: (usize, usize),
-    location: Option<LocationInfo>,
+    location: LocationInfo,
     intrinsic: Box<dyn Intrinsic>,
     operands: Vec<Var>,
     attributes: HashMap<String, Box<dyn Attribute>>,
@@ -51,7 +51,7 @@ impl SupportsVerification for OperationBuilder {
 }
 
 impl OperationBuilder {
-    pub fn default(intr: Box<dyn Intrinsic>, loc: Option<LocationInfo>) -> OperationBuilder {
+    pub fn default(intr: Box<dyn Intrinsic>, loc: LocationInfo) -> OperationBuilder {
         OperationBuilder {
             latest: Vec::new(),
             cursor: (0, 0),
@@ -72,7 +72,7 @@ impl OperationBuilder {
         &self.intrinsic
     }
 
-    pub fn get_location(&self) -> &Option<LocationInfo> {
+    pub fn get_location(&self) -> &LocationInfo {
         &self.location
     }
 

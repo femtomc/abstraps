@@ -12,7 +12,7 @@ use abstraps::dialects::builtin::traits::ProvidesSymbolTable;
 
 #[test]
 fn operation_traits_module_operation_0() -> anyhow::Result<()> {
-    let mut builder = Module.get_builder("foo", None);
+    let mut builder = Module.get_builder("foo", LocationInfo::Unknown);
     let o = builder.finish();
     assert!(o.is_ok());
     let mut op = o.unwrap();

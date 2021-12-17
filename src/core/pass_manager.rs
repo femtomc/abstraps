@@ -4,8 +4,8 @@ use anyhow::bail;
 use std::marker::PhantomData;
 
 pub trait OperationPass {
-    fn valid_intrinsics(&self) -> Vec<Box<dyn Intrinsic>> {
-        Vec::new()
+    fn target_intrinsic(&self) -> Option<Box<dyn Intrinsic>> {
+        return None;
     }
 
     fn reset(&self) -> Box<dyn OperationPass>;
@@ -42,9 +42,9 @@ pub struct OperationPassManager<T>
 where
     T: Intrinsic,
 {
+    intrinsic_tag: PhantomData<T>,
     passes: Vec<Box<dyn OperationPass>>,
     managers: Vec<Box<dyn PassManager>>,
-    intrinsic_type: PhantomData<T>,
 }
 
 impl<T> OperationPassManager<T>
@@ -53,9 +53,9 @@ where
 {
     pub fn new() -> OperationPassManager<T> {
         OperationPassManager {
+            intrinsic_tag: PhantomData,
             passes: Vec::new(),
             managers: Vec::new(),
-            intrinsic_type: PhantomData,
         }
     }
 }
@@ -73,14 +73,14 @@ where
     }
 
     fn push(&mut self, pass: Box<dyn OperationPass>) -> anyhow::Result<()> {
-        let intrs = pass.valid_intrinsics();
-        match intrs.is_empty() {
-            true => self.passes.push(pass),
-            false => match intrs.into_iter().find(|v| v.is::<T>()) {
-                None => bail!("Operation pass must operate on same intrinsic as pass manager."),
-                Some(_) => self.passes.push(pass),
+        let intr = pass.target_intrinsic();
+        match intr {
+            None => self.passes.push(pass),
+            Some(v) => match v.is::<T>() {
+                false => bail!("Operation pass must operate on same intrinsic as pass manager."),
+                true => self.passes.push(pass),
             },
-        }
+        };
         Ok(())
     }
 
