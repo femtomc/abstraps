@@ -1,8 +1,8 @@
+mod absint;
 mod builder;
 mod diagnostics;
 mod display;
 mod graph;
-mod interpreter;
 mod ir;
 mod pass_manager;
 mod region;
