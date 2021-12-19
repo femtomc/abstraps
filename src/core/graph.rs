@@ -1,7 +1,7 @@
 use crate::core::ir::{BasicBlock, Operation, Var};
 use alloc::vec::Vec;
 
-#[derive(Debug)]
+#[derive(Debug, Hash)]
 pub struct Graph {
     defs: Vec<(i32, i32)>,
     blocks: Vec<BasicBlock>,

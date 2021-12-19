@@ -1,5 +1,6 @@
 use crate::core::{
-    Attribute, Intrinsic, IntrinsicTrait, Operation, OperationPass, SupportsVerification, Var,
+    AnalysisManager, Attribute, Intrinsic, IntrinsicTrait, Operation, OperationPass,
+    SupportsVerification, Var,
 };
 use crate::dialects::builtin::attributes::{Symbol, SymbolTable};
 use crate::dialects::builtin::intrinsics::Module;
@@ -15,7 +16,7 @@ impl OperationPass for PopulateSymbolTablePass {
         Box::new(PopulateSymbolTablePass)
     }
 
-    fn apply(&self, op: &mut Operation) -> anyhow::Result<()> {
+    fn apply(&self, op: &mut Operation, amgr: &AnalysisManager) -> anyhow::Result<()> {
         let tr = op.get_trait::<ProvidesSymbolTable>()?;
         let region = &op.get_regions()[0];
         let mut v: Vec<(String, Var)> = Vec::new();

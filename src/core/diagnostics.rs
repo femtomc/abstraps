@@ -2,7 +2,7 @@
 ///// Locations
 /////
 
-#[derive(Debug)]
+#[derive(Debug, Hash)]
 pub enum LocationInfo {
     Unknown,
     FileLineCol(String, usize, usize),

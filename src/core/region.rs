@@ -8,7 +8,7 @@ use anyhow::bail;
 /// A region represents a scope controlled by the parent operation.
 /// The scope itself can have various attributes applied to it
 /// (in MLIR, this is via the trait system).
-#[derive(Debug)]
+#[derive(Debug, Hash)]
 pub enum Region {
     Directed(SSACFG),
     Undirected(Graph),

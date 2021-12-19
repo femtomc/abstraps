@@ -26,6 +26,7 @@ use anyhow;
 use anyhow::bail;
 use downcast_rs::{impl_downcast, Downcast};
 use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
 
 #[derive(Clone, Debug, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Var(usize);
@@ -75,6 +76,13 @@ where
 }
 impl_downcast!(Intrinsic);
 
+impl Hash for dyn Intrinsic {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let s = format!("{}.{}", self.get_namespace(), self.get_name());
+        s.hash(state)
+    }
+}
+
 pub trait AttributeValue
 where
     Self: std::fmt::Debug,
@@ -108,6 +116,16 @@ pub struct Operation {
     attributes: HashMap<String, Box<dyn Attribute>>,
     regions: Vec<Region>,
     successors: Vec<BasicBlock>,
+}
+
+impl Hash for Operation {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.location.hash(state);
+        self.intrinsic.hash(state);
+        self.operands.hash(state);
+        self.regions.hash(state);
+        self.successors.hash(state);
+    }
 }
 
 impl SupportsVerification for Operation {
@@ -207,7 +225,7 @@ impl Operation {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Hash)]
 pub struct BasicBlock {
     operands: Vec<Var>,
     ops: Vec<Operation>,

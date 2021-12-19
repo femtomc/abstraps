@@ -4,6 +4,7 @@ mod diagnostics;
 mod display;
 mod graph;
 mod ir;
+mod key;
 mod pass_manager;
 mod region;
 mod ssacfg;
@@ -17,7 +18,7 @@ pub use self::{
         Attribute, AttributeValue, BasicBlock, Intrinsic, IntrinsicTrait, Operation,
         SupportsVerification, Var,
     },
-    pass_manager::{OperationPass, OperationPassManager, PassManager},
+    pass_manager::{AnalysisManager, OperationPass, OperationPassManager, PassManager},
     region::Region,
     ssacfg::SSACFG,
 };
