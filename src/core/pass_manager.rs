@@ -95,7 +95,7 @@ where
         &mut self.passes
     }
 
-    fn push(&mut self, pass: Box<dyn OperationPass>) -> anyhow::Result<()> {
+    pub fn push(&mut self, pass: Box<dyn OperationPass>) -> anyhow::Result<()> {
         let intr = pass.target_intrinsic();
         match intr {
             None => self.passes.push(pass),
