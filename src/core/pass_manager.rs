@@ -8,15 +8,15 @@
 use crate::core::ir::{Intrinsic, Operation, SupportsVerification};
 use crate::core::key::Key;
 use color_eyre::{eyre::bail, Report};
-use futures::join;
-use std::any::{Any, TypeId};
-use std::collections::{hash_map::DefaultHasher, HashMap};
+
+
+use std::collections::{HashMap};
 use std::fmt::Display;
-use std::hash::{Hash, Hasher};
-use std::marker::PhantomData;
-use std::sync::mpsc::{channel, Receiver, Sender};
-use std::sync::{Arc, RwLock};
-use std::thread;
+use std::hash::{Hash};
+
+
+use std::sync::{RwLock};
+
 
 pub trait AnalysisKey {
     fn to_pass(&self, op: &Operation) -> Box<dyn AnalysisPass>;
@@ -84,7 +84,7 @@ where
     Self: std::fmt::Debug,
 {
     fn target_intrinsic(&self) -> Option<Box<dyn Intrinsic>> {
-        return None;
+        None
     }
 
     fn reset(&self) -> Box<dyn OperationPass>;
@@ -133,7 +133,7 @@ where
         op.get_intrinsic().is::<T>()
     }
 
-    fn prewalk(mut self, mut op: Operation) -> Result<Operation, Report> {
+    fn prewalk(mut self, op: Operation) -> Result<Operation, Report> {
         if !self.check(&op) {
             bail!(format!("Operation intrinsic type is not the same as pass manager.\n\nPass manager requires intrinsic of type {:?}.\nFound operation with intrinsic of type {:?}.", self.get_intrinsic_tag(), op.get_intrinsic()))
         }

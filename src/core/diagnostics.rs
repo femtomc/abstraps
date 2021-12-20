@@ -1,5 +1,5 @@
 use color_eyre::Report;
-use tracing::info;
+
 
 /// Diagnostics setup for tracing and error reporting.
 pub fn diagnostics_setup() -> Result<(), Report> {

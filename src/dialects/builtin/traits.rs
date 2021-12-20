@@ -1,4 +1,4 @@
-use crate::core::{Attribute, IntrinsicTrait, Operation, OperationBuilder, SupportsVerification};
+use crate::core::{Attribute, IntrinsicTrait, Operation, SupportsVerification};
 use crate::dialects::builtin::attributes::{Symbol, SymbolTable};
 use color_eyre::{eyre::bail, Report};
 

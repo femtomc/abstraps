@@ -1,5 +1,5 @@
 use abstraps::core::{
-    diagnostics_setup, Intrinsic, IntrinsicTrait, LocationInfo, OperationBuilder, OperationPass,
+    diagnostics_setup, Intrinsic, IntrinsicTrait, LocationInfo, OperationBuilder,
     OperationPassManager, PassManager, Var,
 };
 use abstraps::dialects::builtin::intrinsics::{Func, Module};
@@ -57,7 +57,7 @@ fn passes_0() -> Result<(), Report> {
     module.push(func2)?;
     let end = module.finish();
     assert!(end.is_ok());
-    let mut op = end.unwrap();
+    let op = end.unwrap();
     let mut pm = OperationPassManager::new(Module);
     pm.push(Box::new(PopulateSymbolTablePass));
     let mut pm2 = OperationPassManager::new(Func);

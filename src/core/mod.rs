@@ -11,7 +11,7 @@ mod ssacfg;
 
 // Public API.
 pub use self::{
-    absint::TypeKey,
+    absint::{LatticeJoin, TypeKey},
     builder::OperationBuilder,
     diagnostics::{diagnostics_setup, LocationInfo},
     graph::Graph,

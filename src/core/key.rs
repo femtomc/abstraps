@@ -1,7 +1,7 @@
 use downcast_rs::{impl_downcast, Downcast};
-use std::any::{Any, TypeId};
-use std::collections::{hash_map::DefaultHasher, HashMap};
-use std::fmt::Display;
+use std::any::{TypeId};
+use std::collections::{hash_map::DefaultHasher};
+
 use std::hash::{Hash, Hasher};
 
 pub trait Key: Downcast {

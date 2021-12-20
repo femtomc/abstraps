@@ -66,6 +66,6 @@ impl Symbol {
     }
 
     pub fn to_string(&self) -> String {
-        return self.0.to_string();
+        self.0.to_string()
     }
 }

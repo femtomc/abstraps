@@ -1,9 +1,9 @@
 use crate::core::builder::OperationBuilder;
 use crate::core::ir::{Operation, Var};
 use crate::core::pass_manager::{AnalysisKey, AnalysisPass};
-use color_eyre::{eyre::bail, Report};
-use downcast_rs::{impl_downcast, Downcast};
-use std::collections::{HashMap, VecDeque};
+use color_eyre::{Report};
+
+use std::collections::{VecDeque};
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
@@ -74,7 +74,7 @@ impl<L> Interpreter<L>
 where
     L: Clone + LatticeJoin,
 {
-    pub fn new(op: &Operation, env: Vec<Option<L>>) -> Interpreter<L> {
+    pub fn new(_op: &Operation, env: Vec<Option<L>>) -> Interpreter<L> {
         let bf = BlockFrame {
             block_ptr: 0,
             block_env: Vec::new(),
@@ -86,7 +86,7 @@ where
             state: InterpreterState::Active,
             active: bf,
             block_queue: vd,
-            env: env,
+            env,
             trace: None,
         }
     }
@@ -141,7 +141,7 @@ impl<L> AnalysisKey for TypeKey<L>
 where
     L: 'static + Clone + LatticeJoin,
 {
-    fn to_pass(&self, op: &Operation) -> Box<dyn AnalysisPass> {
+    fn to_pass(&self, _op: &Operation) -> Box<dyn AnalysisPass> {
         let pass = LatticeInterpreterPass {
             key: self.clone(),
             result: None,
@@ -177,7 +177,7 @@ where
     L: Clone + LatticeJoin,
 {
     fn apply(&mut self, op: &Operation) -> Result<(), Report> {
-        let interp = Interpreter::new(op, self.key.env.to_vec());
+        let _interp = Interpreter::new(op, self.key.env.to_vec());
         Ok(())
     }
 }

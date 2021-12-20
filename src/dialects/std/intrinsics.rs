@@ -1,6 +1,5 @@
 use crate::core::{
-    BasicBlock, Graph, Intrinsic, IntrinsicTrait, LocationInfo, OperationBuilder, Region, Var,
-    SSACFG,
+    Intrinsic, IntrinsicTrait, LocationInfo, OperationBuilder, Var,
 };
 use crate::dialects::builtin::attributes::Symbol;
 use crate::dialects::builtin::traits::ProvidesSymbol;

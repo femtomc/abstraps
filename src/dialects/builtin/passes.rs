@@ -1,12 +1,12 @@
 use crate::core::{
-    AnalysisManager, Attribute, Intrinsic, IntrinsicTrait, Operation, OperationPass,
+    AnalysisManager, IntrinsicTrait, Operation, OperationPass,
     SupportsVerification, Var,
 };
 use crate::dialects::builtin::attributes::{Symbol, SymbolTable};
-use crate::dialects::builtin::intrinsics::Module;
+
 use crate::dialects::builtin::traits::{ProvidesSymbol, ProvidesSymbolTable};
-use color_eyre::{eyre::bail, Report};
-use std::sync::mpsc::Sender;
+use color_eyre::{Report};
+
 use std::sync::RwLock;
 
 #[derive(Debug)]
@@ -20,7 +20,7 @@ impl OperationPass for PopulateSymbolTablePass {
     fn apply(
         &self,
         op_lock: &RwLock<Operation>,
-        analysis_lock: &RwLock<AnalysisManager>,
+        _analysis_lock: &RwLock<AnalysisManager>,
     ) -> Result<(), Report> {
         let mut op = op_lock.write().unwrap();
         let tr = op.get_trait::<ProvidesSymbolTable>()?;

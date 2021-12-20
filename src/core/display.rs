@@ -107,9 +107,9 @@ impl fmt::Display for Operation {
                         Paint::magenta(attr.0),
                         attr.1
                     )?,
-                    _ => write!(
+                    _ => writeln!(
                         indented(&mut fmter).with_str(" "),
-                        "{}: {},\n",
+                        "{}: {},",
                         Paint::magenta(attr.0),
                         attr.1
                     )?,

@@ -10,7 +10,7 @@
 //! https://en.wikipedia.org/wiki/Static_single_assignment_form
 //! for more background on SSA.
 
-use crate::core::builder::OperationBuilder;
+
 use crate::core::diagnostics::LocationInfo;
 use crate::core::region::Region;
 use alloc::string::String;

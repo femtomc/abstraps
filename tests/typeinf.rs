@@ -1,10 +1,10 @@
 use abstraps::core::{
-    diagnostics_setup, AnalysisKey, AnalysisManager, Intrinsic, IntrinsicTrait, LocationInfo,
-    OperationBuilder, OperationPass, TypeKey, Var,
+    diagnostics_setup, AnalysisManager, Intrinsic, IntrinsicTrait, LatticeJoin,
+    LocationInfo, OperationBuilder, TypeKey, Var,
 };
-use abstraps::dialects::builtin::intrinsics::{Func, Module};
-use abstraps::dialects::builtin::passes::PopulateSymbolTablePass;
-use abstraps::dialects::std::intrinsics::{Call, Return};
+use abstraps::dialects::builtin::intrinsics::{Func};
+
+
 use color_eyre::Report;
 
 #[derive(Debug)]
@@ -38,6 +38,12 @@ enum ArithLattice {
     Int64,
 }
 
+impl LatticeJoin for ArithLattice {
+    fn join(&self, _other: &ArithLattice) -> ArithLattice {
+        self.clone()
+    }
+}
+
 #[test]
 fn typeinf_0() -> Result<(), Report> {
     diagnostics_setup();
@@ -49,7 +55,7 @@ fn typeinf_0() -> Result<(), Report> {
     func1.push(add2)?;
     let end = func1.finish();
     assert!(end.is_ok());
-    let mut op = end.unwrap();
+    let op = end.unwrap();
     let key = TypeKey::new(
         "new_func1",
         vec![Some(ArithLattice::Int64), Some(ArithLattice::Int64)],

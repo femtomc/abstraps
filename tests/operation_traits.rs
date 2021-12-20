@@ -13,7 +13,7 @@ use color_eyre::Report;
 
 #[test]
 fn operation_traits_module_operation_0() -> Result<(), Report> {
-    let mut builder = Module.get_builder("foo", LocationInfo::Unknown);
+    let builder = Module.get_builder("foo", LocationInfo::Unknown);
     let o = builder.finish();
     assert!(o.is_ok());
     let mut op = o.unwrap();
