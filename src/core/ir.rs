@@ -1,29 +1,21 @@
-/*!
-
-  The design of this IR is a close copy of MLIR and
-  can be thought of as an embedding of MLIR concepts in Rust.
-
-  This IR uses parametrized basic blocks (in contrast to phi nodes).
-  The core of the IR is the `Operation` template.
-
-  The implementation reflects the extensible design of MLIR,
-  (but conversion between "intrinsic dialects" is currently out of scope)
-  This IR can be thought of as a stage which can
-  further target dialects of MLIR.
-
-  For further information on SSA-based IRs:
-  https://en.wikipedia.org/wiki/Static_single_assignment_form
-  for more background on SSA.
-
-*/
+//! The design of this IR is a close copy of MLIR and
+//! can be thought of as an embedding of MLIR concepts in Rust.
+//! This IR uses parametrized basic blocks (in contrast to phi nodes).
+//! The core of the IR is the `Operation` template.
+//!
+//! The implementation reflects the extensible design of MLIR.
+//! This IR can be thought of as a stage which can further target dialects of MLIR.
+//!
+//! For further information on SSA-based IRs:
+//! https://en.wikipedia.org/wiki/Static_single_assignment_form
+//! for more background on SSA.
 
 use crate::core::builder::OperationBuilder;
 use crate::core::diagnostics::LocationInfo;
 use crate::core::region::Region;
 use alloc::string::String;
 use alloc::vec::Vec;
-use anyhow;
-use anyhow::bail;
+use color_eyre::{eyre::bail, Report};
 use downcast_rs::{impl_downcast, Downcast};
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
@@ -45,9 +37,9 @@ pub trait IntrinsicTrait: Downcast
 where
     Self: std::fmt::Debug,
 {
-    fn verify(&self, op: &dyn SupportsVerification) -> anyhow::Result<()>;
+    fn verify(&self, op: &dyn SupportsVerification) -> Result<(), Report>;
 
-    fn get_attribute<'a>(&self, _op: &'a Operation) -> anyhow::Result<&'a Box<dyn Attribute>> {
+    fn get_attribute<'a>(&self, _op: &'a Operation) -> Result<&'a Box<dyn Attribute>, Report> {
         bail!(format!(
             "(Fallback) Failed to get attribute associated with {:?}.",
             self
@@ -57,7 +49,7 @@ where
     fn get_attribute_mut<'a>(
         &self,
         _op: &'a mut Operation,
-    ) -> anyhow::Result<&'a mut Box<dyn Attribute>> {
+    ) -> Result<&'a mut Box<dyn Attribute>, Report> {
         bail!(format!(
             "(Fallback) Failed to get attribute associated with {:?}.",
             self
@@ -66,9 +58,9 @@ where
 }
 impl_downcast!(IntrinsicTrait);
 
-pub trait Intrinsic: Downcast
+pub trait Intrinsic
 where
-    Self: std::fmt::Debug,
+    Self: Downcast + std::fmt::Debug,
 {
     fn get_namespace(&self) -> &str;
     fn get_name(&self) -> &str;
@@ -183,7 +175,7 @@ impl Operation {
     //
     // This makes use of `downcast_rs` -- and what I assume is complete
     // wizardry.
-    pub fn check_trait<K>(&self) -> Option<anyhow::Result<()>>
+    pub fn check_trait<K>(&self) -> Option<Result<(), Report>>
     where
         K: IntrinsicTrait,
     {
@@ -203,7 +195,7 @@ impl Operation {
         }
     }
 
-    pub fn get_trait<K>(&self) -> anyhow::Result<Box<K>>
+    pub fn get_trait<K>(&self) -> Result<Box<K>, Report>
     where
         K: IntrinsicTrait + Copy,
     {
@@ -220,6 +212,10 @@ impl Operation {
 }
 
 impl Operation {
+    pub fn get_attributes(&self) -> &HashMap<String, Box<dyn Attribute>> {
+        &self.attributes
+    }
+
     pub fn get_attributes_mut(&mut self) -> &mut HashMap<String, Box<dyn Attribute>> {
         &mut self.attributes
     }

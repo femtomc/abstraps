@@ -1,15 +1,11 @@
-/*
-
-   This file is part of `abstraps`. License is MIT.
-
-*/
-
 #![doc = include_str!("../README.md")]
 
 pub mod backends;
-pub mod dialects;
-//pub mod interp;
 pub mod core;
+pub mod dialects;
 
 #[macro_use]
 extern crate alloc;
+extern crate color_eyre;
+extern crate tracing;
+extern crate tracing_subscriber;

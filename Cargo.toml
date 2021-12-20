@@ -9,9 +9,12 @@ readme = "README.md"
 license-file = "LICENSE"
 
 [dependencies]
-anyhow = "1.0.51"
+color-eyre = "0.5.11"
 downcast-rs = "1.2.0"
+futures = "0.3.19"
 indenter = "0.3.3"
+tracing = "0.1.29"
+tracing-subscriber = "0.3.3"
 yansi = "0.5.0"
 
 [build-dependencies]

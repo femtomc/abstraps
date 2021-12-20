@@ -1,14 +1,19 @@
+use downcast_rs::{impl_downcast, Downcast};
 use std::any::{Any, TypeId};
 use std::collections::{hash_map::DefaultHasher, HashMap};
+use std::fmt::Display;
 use std::hash::{Hash, Hasher};
 
-pub trait Key {
+pub trait Key: Downcast {
     fn eq(&self, other: &dyn Key) -> bool;
     fn hash(&self) -> u64;
-    fn as_any(&self) -> &dyn Any;
 }
+impl_downcast!(Key);
 
-impl<T: Eq + Hash + 'static> Key for T {
+impl<T> Key for T
+where
+    T: Eq + Hash + 'static,
+{
     fn eq(&self, other: &dyn Key) -> bool {
         if let Some(other) = other.as_any().downcast_ref::<T>() {
             return self == other;
@@ -20,10 +25,6 @@ impl<T: Eq + Hash + 'static> Key for T {
         let mut h = DefaultHasher::new();
         Hash::hash(&(TypeId::of::<T>(), self), &mut h);
         h.finish()
-    }
-
-    fn as_any(&self) -> &dyn Any {
-        self
     }
 }
 

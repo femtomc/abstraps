@@ -1,10 +1,11 @@
 use abstraps::core::{
-    Intrinsic, IntrinsicTrait, LocationInfo, OperationBuilder, OperationPass, OperationPassManager,
-    PassManager, Var,
+    diagnostics_setup, Intrinsic, IntrinsicTrait, LocationInfo, OperationBuilder, OperationPass,
+    OperationPassManager, PassManager, Var,
 };
 use abstraps::dialects::builtin::intrinsics::{Func, Module};
 use abstraps::dialects::builtin::passes::PopulateSymbolTablePass;
 use abstraps::dialects::std::intrinsics::{Call, Return};
+use color_eyre::Report;
 
 #[derive(Debug)]
 pub struct Add;
@@ -33,7 +34,8 @@ impl Add {
 }
 
 #[test]
-fn builtins_module_operation_1() -> anyhow::Result<()> {
+fn passes_0() -> Result<(), Report> {
+    diagnostics_setup();
     let mut module = Module.get_builder("foo", LocationInfo::Unknown);
     let mut func1 = Func.get_builder("new_func1", LocationInfo::Unknown);
     let operands = vec![func1.push_arg()?, func1.push_arg()?];
@@ -56,9 +58,13 @@ fn builtins_module_operation_1() -> anyhow::Result<()> {
     let end = module.finish();
     assert!(end.is_ok());
     let mut op = end.unwrap();
-    let mut pm = OperationPassManager::<Module>::new();
+    let mut pm = OperationPassManager::new(Module);
     pm.push(Box::new(PopulateSymbolTablePass));
-    pm.prewalk(&mut op).unwrap();
-    println!("{}", op);
+    let mut pm2 = OperationPassManager::new(Func);
+    pm2.push(Box::new(PopulateSymbolTablePass));
+    pm.nest(Box::new(pm2));
+    println!("{}", pm);
+    let finished = pm.prewalk(op).unwrap();
+    println!("{}", finished);
     Ok(())
 }

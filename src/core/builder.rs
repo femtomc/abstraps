@@ -1,12 +1,8 @@
-/*!
-
-   The builder design in this module
-   supports code generation to the `abstraps` IR.
-
-   The interfaces provided below allow customized code generation
-   for user-defined intrinsics and lowering.
-
-*/
+//! The builder design in this module
+//! supports code generation to the `abstraps` IR.
+//!
+//! The interfaces provided below allow customized code generation
+//! for user-defined intrinsics and lowering.
 
 use crate::core::diagnostics::LocationInfo;
 use crate::core::ir::{
@@ -15,7 +11,7 @@ use crate::core::ir::{
 use crate::core::region::Region;
 use alloc::string::String;
 use alloc::vec::Vec;
-use anyhow::{bail, Result};
+use color_eyre::{eyre::bail, Report};
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -96,7 +92,7 @@ impl OperationBuilder {
         self.cursor
     }
 
-    pub fn push_arg(&mut self) -> Result<Var> {
+    pub fn push_arg(&mut self) -> Result<Var, Report> {
         let blk = self.cursor.1 - 1;
         let r = self.get_region();
         match r.push_arg(blk) {
@@ -136,7 +132,7 @@ impl OperationBuilder {
         &self.regions
     }
 
-    pub fn push_block(&mut self, b: BasicBlock) -> Result<()> {
+    pub fn push_block(&mut self, b: BasicBlock) -> Result<(), Report> {
         let r = self.get_region();
         r.push_block(b)?;
         self.cursor = (self.cursor.0, self.cursor.1 + 1);
@@ -150,7 +146,7 @@ impl OperationBuilder {
         b
     }
 
-    pub fn check_trait<K>(&self) -> Option<anyhow::Result<()>>
+    pub fn check_trait<K>(&self) -> Option<Result<(), Report>>
     where
         K: IntrinsicTrait,
     {
@@ -170,7 +166,7 @@ impl OperationBuilder {
         }
     }
 
-    pub fn get_trait<K>(&self) -> anyhow::Result<Box<K>>
+    pub fn get_trait<K>(&self) -> Result<Box<K>, Report>
     where
         K: IntrinsicTrait + Copy,
     {
@@ -185,7 +181,7 @@ impl OperationBuilder {
         }
     }
 
-    pub fn push(&mut self, v: OperationBuilder) -> Result<Var> {
+    pub fn push(&mut self, v: OperationBuilder) -> Result<Var, Report> {
         let op = v.finish()?;
         Ok(self.push_op(op))
     }
@@ -201,7 +197,7 @@ impl OperationBuilder {
 }
 
 impl OperationBuilder {
-    pub fn finish(self) -> Result<Operation> {
+    pub fn finish(self) -> Result<Operation, Report> {
         Ok(Operation::new(
             self.location,
             self.intrinsic,

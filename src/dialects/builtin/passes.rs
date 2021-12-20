@@ -5,8 +5,9 @@ use crate::core::{
 use crate::dialects::builtin::attributes::{Symbol, SymbolTable};
 use crate::dialects::builtin::intrinsics::Module;
 use crate::dialects::builtin::traits::{ProvidesSymbol, ProvidesSymbolTable};
-use anyhow;
-use anyhow::bail;
+use color_eyre::{eyre::bail, Report};
+use std::sync::mpsc::Sender;
+use std::sync::RwLock;
 
 #[derive(Debug)]
 pub struct PopulateSymbolTablePass;
@@ -16,7 +17,12 @@ impl OperationPass for PopulateSymbolTablePass {
         Box::new(PopulateSymbolTablePass)
     }
 
-    fn apply(&self, op: &mut Operation, amgr: &AnalysisManager) -> anyhow::Result<()> {
+    fn apply(
+        &self,
+        op_lock: &RwLock<Operation>,
+        analysis_lock: &RwLock<AnalysisManager>,
+    ) -> Result<(), Report> {
+        let mut op = op_lock.write().unwrap();
         let tr = op.get_trait::<ProvidesSymbolTable>()?;
         let region = &op.get_regions()[0];
         let mut v: Vec<(String, Var)> = Vec::new();
@@ -28,7 +34,7 @@ impl OperationPass for PopulateSymbolTablePass {
                 v.push((s.to_string(), var));
             }
         }
-        let attr = tr.get_attribute_mut(op)?;
+        let attr = tr.get_attribute_mut(&mut op)?;
         let tbl = attr.downcast_mut::<SymbolTable>().unwrap();
         for (s, v) in v.iter() {
             tbl.insert(s, *v);

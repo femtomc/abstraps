@@ -1,7 +1,7 @@
 use crate::core::graph::Graph;
 use crate::core::ir::{BasicBlock, Operation, Var};
 use crate::core::ssacfg::SSACFG;
-use anyhow::bail;
+use color_eyre::{eyre::bail, Report};
 
 /// A close copy of the equivalent concept in MLIR.
 ///
@@ -15,7 +15,7 @@ pub enum Region {
 }
 
 impl Region {
-    pub fn push_arg(&mut self, ind: usize) -> anyhow::Result<Var> {
+    pub fn push_arg(&mut self, ind: usize) -> Result<Var, Report> {
         match self {
             Region::Directed(ssacfg) => Ok(ssacfg.push_arg(ind)),
             Region::Undirected(_graph) => {
@@ -38,7 +38,7 @@ impl Region {
         }
     }
 
-    pub fn push_block(&mut self, b: BasicBlock) -> anyhow::Result<()> {
+    pub fn push_block(&mut self, b: BasicBlock) -> Result<(), Report> {
         match self {
             Region::Directed(ssacfg) => {
                 ssacfg.push_block(b);

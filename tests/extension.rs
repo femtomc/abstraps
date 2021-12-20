@@ -1,5 +1,6 @@
 use abstraps::core::{Intrinsic, IntrinsicTrait, LocationInfo, OperationBuilder, Var};
 use abstraps::dialects::builtin::intrinsics::{Func, Module};
+use color_eyre::Report;
 
 #[derive(Debug)]
 pub struct Add;
@@ -28,7 +29,7 @@ impl Add {
 }
 
 #[test]
-fn builtins_module_operation_1() -> anyhow::Result<()> {
+fn extensions_0() -> Result<(), Report> {
     let mut module = Module.get_builder("foo", LocationInfo::Unknown);
     let mut func = Func.get_builder("new_func", LocationInfo::Unknown);
     let operands = vec![func.push_arg()?, func.push_arg()?];

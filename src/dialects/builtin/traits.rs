@@ -1,12 +1,12 @@
 use crate::core::{Attribute, IntrinsicTrait, Operation, OperationBuilder, SupportsVerification};
 use crate::dialects::builtin::attributes::{Symbol, SymbolTable};
-use anyhow::bail;
+use color_eyre::{eyre::bail, Report};
 
 #[derive(Debug, Clone, Copy)]
 pub struct ProvidesSymbolTable;
 
 impl IntrinsicTrait for ProvidesSymbolTable {
-    fn verify(&self, op: &dyn SupportsVerification) -> anyhow::Result<()> {
+    fn verify(&self, op: &dyn SupportsVerification) -> Result<(), Report> {
         if !op.get_attributes().contains_key("symbols") {
             bail!("Operation attributes map does not contain the `symbols` key.")
         }
@@ -20,7 +20,7 @@ impl IntrinsicTrait for ProvidesSymbolTable {
     fn get_attribute_mut<'a>(
         &self,
         op: &'a mut Operation,
-    ) -> anyhow::Result<&'a mut Box<dyn Attribute>> {
+    ) -> Result<&'a mut Box<dyn Attribute>, Report> {
         match op.get_attributes_mut().get_mut("symbols") {
             None => bail!("Failed to get `symbols` key in operation attributes map."),
             Some(v) => Ok(v),
@@ -32,7 +32,7 @@ impl IntrinsicTrait for ProvidesSymbolTable {
 pub struct ProvidesSymbol;
 
 impl IntrinsicTrait for ProvidesSymbol {
-    fn verify(&self, op: &dyn SupportsVerification) -> anyhow::Result<()> {
+    fn verify(&self, op: &dyn SupportsVerification) -> Result<(), Report> {
         if !op.get_attributes().contains_key("symbol") {
             bail!("Operation attribute map does not contain the `symbol` key.")
         }
@@ -43,7 +43,7 @@ impl IntrinsicTrait for ProvidesSymbol {
         }
     }
 
-    fn get_attribute<'a>(&self, op: &'a Operation) -> anyhow::Result<&'a Box<dyn Attribute>> {
+    fn get_attribute<'a>(&self, op: &'a Operation) -> Result<&'a Box<dyn Attribute>, Report> {
         match op.get_attributes().get("symbol") {
             None => bail!("Failed to get `symbol` key in operation attributes map."),
             Some(v) => Ok(v),
@@ -53,7 +53,7 @@ impl IntrinsicTrait for ProvidesSymbol {
     fn get_attribute_mut<'a>(
         &self,
         op: &'a mut Operation,
-    ) -> anyhow::Result<&'a mut Box<dyn Attribute>> {
+    ) -> Result<&'a mut Box<dyn Attribute>, Report> {
         match op.get_attributes_mut().get_mut("symbol") {
             None => bail!("Failed to get `symbol` key in operation attributes map."),
             Some(v) => Ok(v),

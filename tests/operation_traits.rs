@@ -2,6 +2,7 @@ use abstraps::core::{IntrinsicTrait, LocationInfo, Var};
 use abstraps::dialects::builtin::attributes::SymbolTable;
 use abstraps::dialects::builtin::intrinsics::Module;
 use abstraps::dialects::builtin::traits::ProvidesSymbolTable;
+use color_eyre::Report;
 
 // This shows usage of the "trait" interface
 // (which, again, is similar to the MLIR version)
@@ -11,7 +12,7 @@ use abstraps::dialects::builtin::traits::ProvidesSymbolTable;
 // extensions to the IR).
 
 #[test]
-fn operation_traits_module_operation_0() -> anyhow::Result<()> {
+fn operation_traits_module_operation_0() -> Result<(), Report> {
     let mut builder = Module.get_builder("foo", LocationInfo::Unknown);
     let o = builder.finish();
     assert!(o.is_ok());

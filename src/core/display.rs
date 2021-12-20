@@ -164,3 +164,30 @@ impl fmt::Display for OperationBuilder {
         Ok(())
     }
 }
+
+use crate::core::pass_manager::OperationPassManager;
+impl<T> fmt::Display for OperationPassManager<T>
+where
+    T: Intrinsic,
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let tag = self.get_intrinsic_tag();
+        let intr = format!(
+            "{}.{}",
+            Paint::green(tag.get_namespace()).underline(),
+            Paint::green(tag.get_name()).bold()
+        );
+        writeln!(f, "({})", intr)?;
+        for p in self.get_passes().iter() {
+            writeln!(
+                indented(f).with_str("  "),
+                "{}",
+                Paint::magenta(format!("{:?}", p))
+            )?;
+        }
+        for pm in self.get_managers().iter() {
+            writeln!(indented(f).with_str("  "), "{}", pm)?;
+        }
+        Ok(())
+    }
+}

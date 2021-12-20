@@ -11,14 +11,18 @@ mod ssacfg;
 
 // Public API.
 pub use self::{
+    absint::TypeKey,
     builder::OperationBuilder,
-    diagnostics::LocationInfo,
+    diagnostics::{diagnostics_setup, LocationInfo},
     graph::Graph,
     ir::{
         Attribute, AttributeValue, BasicBlock, Intrinsic, IntrinsicTrait, Operation,
         SupportsVerification, Var,
     },
-    pass_manager::{AnalysisManager, OperationPass, OperationPassManager, PassManager},
+    key::Key,
+    pass_manager::{
+        AnalysisKey, AnalysisManager, OperationPass, OperationPassManager, PassManager,
+    },
     region::Region,
     ssacfg::SSACFG,
 };

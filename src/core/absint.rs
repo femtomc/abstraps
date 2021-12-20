@@ -1,28 +1,20 @@
 use crate::core::builder::OperationBuilder;
 use crate::core::ir::{Operation, Var};
-use anyhow;
+use crate::core::pass_manager::{AnalysisKey, AnalysisPass};
+use color_eyre::{eyre::bail, Report};
 use downcast_rs::{impl_downcast, Downcast};
 use std::collections::{HashMap, VecDeque};
-
-#[derive(Debug, PartialEq)]
-pub enum InterpreterError {
-    FailedToPrepareInterpreter,
-    FailedToResolve,
-    FailedToUnify,
-    FailedToPropagate,
-    MergeFailure,
-    NoPropagationRuleForIntrinsic,
-    FailedToLookupVarInEnv,
-    FailedToLookupVarInIR,
-    NotAllArgumentsResolvedInCall,
-    TriedToFinishWhenInterpreterNotFinished,
-    Caseless,
-}
+use std::fmt;
+use std::hash::{Hash, Hasher};
 
 #[derive(Debug)]
-pub enum InterpreterState {
+pub enum InterpreterError {}
+
+#[derive(Debug)]
+pub enum InterpreterState<L> {
     Inactive,
     Active,
+    Waiting(TypeKey<L>),
     Error(InterpreterError),
     Finished,
 }
@@ -35,21 +27,8 @@ pub enum InterpreterState {
 #[derive(Debug)]
 pub struct BlockFrame<L> {
     block_ptr: usize,
-    block_env: HashMap<Var, L>,
+    block_env: Vec<Option<L>>,
     lines: VecDeque<Var>,
-}
-
-impl<L> BlockFrame<L>
-where
-    L: Clone,
-{
-    fn get(&self, v: &Var) -> Option<L> {
-        self.block_env.get(v).cloned()
-    }
-
-    fn insert(&mut self, k: &Var, v: L) {
-        self.block_env.insert(*k, v);
-    }
 }
 
 /// This is the packaged up form of analysis
@@ -71,17 +50,16 @@ where
 }
 
 #[derive(Debug)]
-pub struct Interpreter<L, G> {
-    state: InterpreterState,
+pub struct Interpreter<L> {
+    state: InterpreterState<L>,
     active: BlockFrame<L>,
     block_queue: VecDeque<BlockFrame<L>>,
-    env: HashMap<Var, L>,
+    env: Vec<Option<L>>,
     trace: Option<OperationBuilder>,
-    global: Option<G>,
 }
 
 pub trait LatticeSemantics<L> {
-    fn propagate(&self, v: Vec<L>) -> anyhow::Result<L>;
+    fn propagate(&self, v: Vec<L>) -> Result<L, Report>;
 }
 
 pub trait LatticeJoin {
@@ -92,48 +70,114 @@ pub trait LatticeConvert<L> {
     fn convert(&self) -> L;
 }
 
-/// The `Communication` trait provides a mechanism for interpreters
-/// to synchronize across some global state `G`
-/// (as part of higher-level inference processes).
-pub trait Communication<M, R> {
-    fn ask(&self, msg: &M) -> Option<R>;
-}
-
-impl<M, L, G> Communication<M, L> for Interpreter<L, G>
-where
-    G: Communication<M, L>,
-{
-    fn ask(&self, msg: &M) -> Option<L> {
-        match &self.global {
-            None => None,
-            Some(rr) => rr.ask(msg),
-        }
-    }
-}
-
-impl<L, G> Interpreter<L, G>
+impl<L> Interpreter<L>
 where
     L: Clone + LatticeJoin,
 {
-    pub fn get(&self, v: &Var) -> Option<L> {
-        self.active.block_env.get(v).cloned()
-    }
+    pub fn new(op: &Operation, env: Vec<Option<L>>) -> Interpreter<L> {
+        let bf = BlockFrame {
+            block_ptr: 0,
+            block_env: Vec::new(),
+            lines: VecDeque::new(),
+        };
 
-    pub fn merge_insert(&mut self, k: &Var, v: L) -> Result<(), InterpreterError> {
-        self.env.insert(*k, v);
-        Ok(())
+        let vd = VecDeque::<BlockFrame<L>>::new();
+        Interpreter {
+            state: InterpreterState::Active,
+            active: bf,
+            block_queue: vd,
+            env: env,
+            trace: None,
+        }
     }
+}
 
-    pub fn merge(&mut self) -> Result<(), InterpreterError> {
-        for (k, v) in &self.active.block_env {
-            match self.get(k) {
-                None => self.env.insert(*k, v.clone()),
-                Some(t) => {
-                    let merged = t.join(v);
-                    self.env.insert(*k, merged)
-                }
+/////
+///// Analysis manager interaction.
+/////
+
+#[derive(Debug, Clone)]
+pub struct TypeKey<L> {
+    symbol: String,
+    env: Vec<Option<L>>,
+}
+
+impl<L> TypeKey<L> {
+    pub fn new(symbol: &str, env: Vec<Option<L>>) -> TypeKey<L> {
+        TypeKey {
+            symbol: symbol.to_string(),
+            env,
+        }
+    }
+}
+
+impl<L> PartialEq for TypeKey<L>
+where
+    L: PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.symbol == other.symbol && self.env == other.env
+    }
+}
+
+impl<L> Eq for TypeKey<L> where L: Eq {}
+
+impl<L> Hash for TypeKey<L>
+where
+    L: Hash,
+{
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.symbol.hash(state);
+        for lval in self.env.iter() {
+            match lval {
+                None => (),
+                Some(v) => v.hash(state),
             };
         }
+    }
+}
+
+impl<L> AnalysisKey for TypeKey<L>
+where
+    L: 'static + Clone + LatticeJoin,
+{
+    fn to_pass(&self, op: &Operation) -> Box<dyn AnalysisPass> {
+        let pass = LatticeInterpreterPass {
+            key: self.clone(),
+            result: None,
+        };
+        Box::new(pass)
+    }
+}
+
+impl<L> std::fmt::Display for TypeKey<L>
+where
+    L: std::fmt::Display,
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}(", self.symbol)?;
+        for lval in self.env.iter() {
+            match lval {
+                None => (),
+                Some(v) => write!(f, "{}, ", v)?,
+            };
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
+pub struct LatticeInterpreterPass<L> {
+    key: TypeKey<L>,
+    result: Option<InterpreterFrame<L>>,
+}
+
+impl<L> AnalysisPass for LatticeInterpreterPass<L>
+where
+    L: Clone + LatticeJoin,
+{
+    fn apply(&mut self, op: &Operation) -> Result<(), Report> {
+        let interp = Interpreter::new(op, self.key.env.to_vec());
         Ok(())
     }
 }
