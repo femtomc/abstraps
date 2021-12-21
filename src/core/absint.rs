@@ -46,7 +46,7 @@ pub struct Interpreter<L> {
 }
 
 pub trait LatticeSemantics<L> {
-    fn propagate(&self, v: Vec<L>) -> Result<L, Report>;
+    fn propagate(&self, v: Vec<&L>) -> Result<L, Report>;
 }
 
 pub trait LatticeJoin {
@@ -72,17 +72,17 @@ where
         }
     }
 
-    pub fn get(&self, v: Var) -> Result<L, Report> {
+    pub fn get(&self, v: Var) -> Result<&L, Report> {
         match self.env.get(v.get_id()) {
             Some(l) => match l {
-                Some(l) => Ok(l.clone()),
+                Some(l) => Ok(l),
                 None => bail!(format!("No type for SSA variable {}.", v)),
             },
             None => bail!(format!("No type for SSA variable {}.", v)),
         }
     }
 
-    pub fn resolve_to_lattice(&self, op: &Operation) -> Result<Vec<L>, Report> {
+    pub fn resolve_to_lattice(&self, op: &Operation) -> Result<Vec<&L>, Report> {
         let operands = op.get_operands();
         operands
             .into_iter()
