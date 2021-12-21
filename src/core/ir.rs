@@ -15,7 +15,7 @@ use crate::core::interfaces::*;
 use crate::core::region::Region;
 use alloc::string::String;
 use alloc::vec::Vec;
-use color_eyre::{eyre::bail, Report};
+
 use downcast_rs::{impl_downcast, Downcast};
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};

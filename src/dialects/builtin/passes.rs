@@ -1,4 +1,4 @@
-use crate::dialects::builtin::attributes::{Symbol, SymbolTable};
+
 use crate::dialects::builtin::traits::{ProvidesSymbol, ProvidesSymbolTable};
 use crate::*;
 use color_eyre::{eyre::bail, Report};

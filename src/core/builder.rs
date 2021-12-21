@@ -9,7 +9,7 @@ use crate::core::ir::{Attribute, BasicBlock, Intrinsic, Operation, SupportsInter
 use crate::core::region::Region;
 use alloc::string::String;
 use alloc::vec::Vec;
-use color_eyre::{eyre::bail, Report};
+use color_eyre::{Report};
 use std::collections::HashMap;
 
 #[derive(Debug)]

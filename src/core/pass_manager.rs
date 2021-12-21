@@ -8,8 +8,8 @@
 use crate::core::ir::{Intrinsic, Operation, SupportsInterfaceTraits};
 use color_eyre::{eyre::bail, Report};
 use std::collections::HashMap;
-use std::fmt::Display;
-use std::hash::Hash;
+
+
 use std::sync::RwLock;
 
 pub trait AnalysisKey {}
@@ -129,9 +129,7 @@ where
 
     fn prewalk(mut self, op: Operation) -> Result<Operation, Report> {
         if !self.check(&op) {
-            bail!(format!(
-                "Operation intrinsic type is not the same as pass manager."
-            ))
+            bail!("Operation intrinsic type is not the same as pass manager.".to_string())
         }
         let analysis_manager = self.analysis_manager.take().unwrap();
         let analysis_lock = RwLock::new(analysis_manager);

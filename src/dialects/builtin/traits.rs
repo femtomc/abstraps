@@ -1,5 +1,5 @@
-use crate::core::{Attribute, AttributeValue, Operation, SupportsInterfaceTraits, Var};
-use crate::dialects::builtin::attributes::{Symbol, SymbolTable};
+use crate::core::{AttributeValue, SupportsInterfaceTraits, Var};
+
 use color_eyre::{eyre::bail, Report};
 use std::collections::HashMap;
 
@@ -20,7 +20,7 @@ pub trait ProvidesSymbolTable {
         let attr_val = obj
             .query_ref::<dyn AttributeValue<HashMap<String, Var>>>()
             .unwrap();
-        return attr_val.get_value();
+        attr_val.get_value()
     }
 
     fn get_value_mut<'a>(
@@ -31,7 +31,7 @@ pub trait ProvidesSymbolTable {
         let attr_val = obj
             .query_mut::<dyn AttributeValue<HashMap<String, Var>>>()
             .unwrap();
-        return attr_val.get_value_mut();
+        attr_val.get_value_mut()
     }
 }
 
@@ -50,12 +50,12 @@ pub trait ProvidesSymbol {
     fn get_value<'a>(&self, op: &'a dyn SupportsInterfaceTraits) -> &'a String {
         let obj = op.get_attributes().get("symbol").unwrap();
         let attr_val = obj.query_ref::<dyn AttributeValue<String>>().unwrap();
-        return attr_val.get_value();
+        attr_val.get_value()
     }
 
     fn get_value_mut<'a>(&self, op: &'a mut dyn SupportsInterfaceTraits) -> &'a mut String {
         let obj = op.get_attributes_mut().get_mut("symbol").unwrap();
         let attr_val = obj.query_mut::<dyn AttributeValue<String>>().unwrap();
-        return attr_val.get_value_mut();
+        attr_val.get_value_mut()
     }
 }
