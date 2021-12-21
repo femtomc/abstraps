@@ -1,9 +1,8 @@
 use abstraps::core::{
-    diagnostics_setup, AnalysisManager, Intrinsic, IntrinsicTrait, LatticeJoin,
-    LocationInfo, OperationBuilder, TypeKey, Var,
+    diagnostics_setup, AnalysisManager, Intrinsic, IntrinsicTrait, LatticeJoin, LocationInfo,
+    OperationBuilder, TypeKey, Var,
 };
 use abstraps::dialects::builtin::intrinsics::Func;
-
 use color_eyre::Report;
 
 #[derive(Debug)]
