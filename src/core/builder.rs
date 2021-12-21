@@ -5,9 +5,7 @@
 //! for user-defined intrinsics and lowering.
 
 use crate::core::diagnostics::LocationInfo;
-use crate::core::ir::{
-    Attribute, BasicBlock, Intrinsic, IntrinsicTrait, Operation, SupportsVerification, Var,
-};
+use crate::core::ir::{Attribute, BasicBlock, Intrinsic, Operation, SupportsInterfaceTraits, Var};
 use crate::core::region::Region;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -32,17 +30,21 @@ pub struct OperationBuilder {
     successors: Vec<BasicBlock>,
 }
 
-impl SupportsVerification for OperationBuilder {
+impl SupportsInterfaceTraits for OperationBuilder {
     fn get_intrinsic(&self) -> &Box<dyn Intrinsic> {
         &self.intrinsic
+    }
+
+    fn get_regions(&self) -> &[Region] {
+        &self.regions
     }
 
     fn get_attributes(&self) -> &HashMap<String, Box<dyn Attribute>> {
         &self.attributes
     }
 
-    fn get_regions(&self) -> &[Region] {
-        &self.regions
+    fn get_attributes_mut(&mut self) -> &mut HashMap<String, Box<dyn Attribute>> {
+        &mut self.attributes
     }
 }
 
@@ -144,41 +146,6 @@ impl OperationBuilder {
         let blk = cursor.1 - 1;
         let b = self.get_region().get_block(blk);
         b
-    }
-
-    pub fn check_trait<K>(&self) -> Option<Result<(), Report>>
-    where
-        K: IntrinsicTrait,
-    {
-        self.get_intrinsic()
-            .get_traits()
-            .iter()
-            .find_map(|tr| tr.downcast_ref::<K>().map(|v| v.verify(self)))
-    }
-
-    pub fn has_trait<K>(&self) -> bool
-    where
-        K: IntrinsicTrait,
-    {
-        match self.check_trait::<K>() {
-            Some(v) => v.is_ok(),
-            None => false,
-        }
-    }
-
-    pub fn get_trait<K>(&self) -> Result<Box<K>, Report>
-    where
-        K: IntrinsicTrait + Copy,
-    {
-        let tr = self
-            .get_intrinsic()
-            .get_traits()
-            .into_iter()
-            .find(|v| v.is::<K>());
-        match tr {
-            None => bail!("Failed to get trait."),
-            Some(v) => Ok(v.downcast::<K>().unwrap()),
-        }
     }
 
     pub fn push(&mut self, v: OperationBuilder) -> Result<Var, Report> {

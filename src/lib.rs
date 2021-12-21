@@ -1,8 +1,10 @@
 #![doc = include_str!("../README.md")]
 
-pub mod backends;
-pub mod core;
+//pub mod backends;
 pub mod dialects;
+
+mod core;
+pub use self::core::*;
 
 #[macro_use]
 extern crate alloc;

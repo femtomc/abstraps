@@ -1,62 +1,61 @@
-use crate::core::{Attribute, IntrinsicTrait, Operation, SupportsVerification};
+use crate::core::{Attribute, AttributeValue, Operation, SupportsInterfaceTraits, Var};
 use crate::dialects::builtin::attributes::{Symbol, SymbolTable};
 use color_eyre::{eyre::bail, Report};
+use std::collections::HashMap;
 
-#[derive(Debug, Clone, Copy)]
-pub struct ProvidesSymbolTable;
-
-impl IntrinsicTrait for ProvidesSymbolTable {
-    fn verify(&self, op: &dyn SupportsVerification) -> Result<(), Report> {
+pub trait ProvidesSymbolTable {
+    fn verify(&self, op: &dyn SupportsInterfaceTraits) -> Result<(), Report> {
         if !op.get_attributes().contains_key("symbols") {
             bail!("Operation attributes map does not contain the `symbols` key.")
         }
-        let attr = op.get_attributes().get("symbols").unwrap();
-        match attr.downcast_ref::<SymbolTable>() {
-            Some(_v) => Ok(()),
+        let obj = op.get_attributes().get("symbols").unwrap();
+        match obj.query_ref::<dyn AttributeValue<HashMap<String, Var>>>() {
             None => bail!("The attribute value indexed by `symbols` is not a `SymbolTable`."),
+            Some(_v) => Ok(()),
         }
     }
 
-    fn get_attribute_mut<'a>(
+    fn get_value<'a>(&self, op: &'a dyn SupportsInterfaceTraits) -> &'a HashMap<String, Var> {
+        let obj = op.get_attributes().get("symbols").unwrap();
+        let attr_val = obj
+            .query_ref::<dyn AttributeValue<HashMap<String, Var>>>()
+            .unwrap();
+        return attr_val.get_value();
+    }
+
+    fn get_value_mut<'a>(
         &self,
-        op: &'a mut Operation,
-    ) -> Result<&'a mut Box<dyn Attribute>, Report> {
-        match op.get_attributes_mut().get_mut("symbols") {
-            None => bail!("Failed to get `symbols` key in operation attributes map."),
-            Some(v) => Ok(v),
-        }
+        op: &'a mut dyn SupportsInterfaceTraits,
+    ) -> &'a mut HashMap<String, Var> {
+        let obj = op.get_attributes_mut().get_mut("symbols").unwrap();
+        let attr_val = obj
+            .query_mut::<dyn AttributeValue<HashMap<String, Var>>>()
+            .unwrap();
+        return attr_val.get_value_mut();
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct ProvidesSymbol;
-
-impl IntrinsicTrait for ProvidesSymbol {
-    fn verify(&self, op: &dyn SupportsVerification) -> Result<(), Report> {
+pub trait ProvidesSymbol {
+    fn verify(&self, op: &dyn SupportsInterfaceTraits) -> Result<(), Report> {
         if !op.get_attributes().contains_key("symbol") {
             bail!("Operation attribute map does not contain the `symbol` key.")
         }
-        let attr = op.get_attributes().get("symbol").unwrap();
-        match attr.downcast_ref::<Symbol>() {
-            Some(_v) => Ok(()),
+        let obj = op.get_attributes().get("symbol").unwrap();
+        match obj.query_ref::<dyn AttributeValue<String>>() {
             None => bail!("The attribute value indexed by `symbol` is not a `Symbol`."),
+            Some(_v) => Ok(()),
         }
     }
 
-    fn get_attribute<'a>(&self, op: &'a Operation) -> Result<&'a Box<dyn Attribute>, Report> {
-        match op.get_attributes().get("symbol") {
-            None => bail!("Failed to get `symbol` key in operation attributes map."),
-            Some(v) => Ok(v),
-        }
+    fn get_value<'a>(&self, op: &'a dyn SupportsInterfaceTraits) -> &'a String {
+        let obj = op.get_attributes().get("symbol").unwrap();
+        let attr_val = obj.query_ref::<dyn AttributeValue<String>>().unwrap();
+        return attr_val.get_value();
     }
 
-    fn get_attribute_mut<'a>(
-        &self,
-        op: &'a mut Operation,
-    ) -> Result<&'a mut Box<dyn Attribute>, Report> {
-        match op.get_attributes_mut().get_mut("symbol") {
-            None => bail!("Failed to get `symbol` key in operation attributes map."),
-            Some(v) => Ok(v),
-        }
+    fn get_value_mut<'a>(&self, op: &'a mut dyn SupportsInterfaceTraits) -> &'a mut String {
+        let obj = op.get_attributes_mut().get_mut("symbol").unwrap();
+        let attr_val = obj.query_mut::<dyn AttributeValue<String>>().unwrap();
+        return attr_val.get_value_mut();
     }
 }

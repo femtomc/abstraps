@@ -1,23 +1,22 @@
-mod absint;
+//mod absint;
 mod builder;
 mod diagnostics;
 mod display;
-pub mod interfaces;
+#[macro_use]
+mod interfaces;
 mod ir;
-mod key;
 mod pass_manager;
 mod region;
 
 // Public API.
 pub use self::{
-    absint::{LatticeJoin, LatticeSemantics, TypeKey},
+    //    absint::{LatticeJoin, LatticeSemantics, TypeKey},
     builder::OperationBuilder,
     diagnostics::{diagnostics_setup, LocationInfo},
+    interfaces::*,
     ir::{
-        Attribute, AttributeValue, BasicBlock, Intrinsic, IntrinsicTrait, Operation,
-        SupportsVerification, Var,
+        Attribute, AttributeValue, BasicBlock, Intrinsic, Operation, SupportsInterfaceTraits, Var,
     },
-    key::Key,
     pass_manager::{
         AnalysisKey, AnalysisManager, OperationPass, OperationPassManager, PassManager,
     },

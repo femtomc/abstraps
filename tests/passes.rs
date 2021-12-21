@@ -1,13 +1,9 @@
-use abstraps::core::{
-    diagnostics_setup, Intrinsic, IntrinsicTrait, LocationInfo, OperationBuilder,
-    OperationPassManager, PassManager, Var,
-};
-use abstraps::dialects::builtin::intrinsics::{Func, Module};
-use abstraps::dialects::builtin::passes::PopulateSymbolTablePass;
-use abstraps::dialects::std::intrinsics::{Call, Return};
+use abstraps::dialects::builtin::*;
+use abstraps::dialects::std::*;
+use abstraps::*;
 use color_eyre::Report;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Add;
 
 impl Intrinsic for Add {
@@ -17,10 +13,6 @@ impl Intrinsic for Add {
 
     fn get_name(&self) -> &str {
         "add"
-    }
-
-    fn get_traits(&self) -> Vec<Box<dyn IntrinsicTrait>> {
-        Vec::new()
     }
 }
 
@@ -32,6 +24,8 @@ impl Add {
         b
     }
 }
+
+interfaces!(Add: dyn Intrinsic);
 
 #[test]
 fn passes_0() -> Result<(), Report> {
@@ -58,6 +52,7 @@ fn passes_0() -> Result<(), Report> {
     let end = module.finish();
     assert!(end.is_ok());
     let op = end.unwrap();
+    println!("{}", op);
     let mut pm = OperationPassManager::new(Module);
     pm.push(Box::new(PopulateSymbolTablePass));
     let mut pm2 = OperationPassManager::new(Func);

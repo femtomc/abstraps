@@ -1,9 +1,8 @@
-use crate::core::{Intrinsic, IntrinsicTrait, LocationInfo, OperationBuilder, Var};
-use crate::dialects::builtin::attributes::Symbol;
-use crate::dialects::builtin::traits::ProvidesSymbol;
+use crate::dialects::builtin::*;
+use crate::*;
 
 // Call intrinsic.
-#[derive(Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub struct Call;
 
 impl Intrinsic for Call {
@@ -13,11 +12,6 @@ impl Intrinsic for Call {
 
     fn get_name(&self) -> &str {
         "call"
-    }
-
-    fn get_traits(&self) -> Vec<Box<dyn IntrinsicTrait>> {
-        let st = Box::new(ProvidesSymbol);
-        vec![st]
     }
 }
 
@@ -37,8 +31,10 @@ impl Call {
     }
 }
 
+interfaces!(Call: dyn ObjectClone, dyn Intrinsic);
+
 // Return intrinsic.
-#[derive(Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub struct Return;
 
 impl Intrinsic for Return {
@@ -48,10 +44,6 @@ impl Intrinsic for Return {
 
     fn get_name(&self) -> &str {
         "return"
-    }
-
-    fn get_traits(&self) -> Vec<Box<dyn IntrinsicTrait>> {
-        Vec::new()
     }
 }
 
@@ -63,3 +55,5 @@ impl Return {
         b
     }
 }
+
+interfaces!(Return: dyn ObjectClone, dyn Intrinsic);

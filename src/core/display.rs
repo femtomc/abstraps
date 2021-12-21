@@ -1,4 +1,4 @@
-use crate::core::ir::SupportsVerification;
+use crate::core::ir::SupportsInterfaceTraits;
 use std::fmt;
 use yansi::Paint;
 use {indenter::indented, std::fmt::Write};
@@ -171,7 +171,7 @@ where
     T: Intrinsic,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let tag = self.get_intrinsic_tag();
+        let tag = self.get_intrinsic();
         let intr = format!(
             "{}.{}",
             Paint::green(tag.get_namespace()).underline(),

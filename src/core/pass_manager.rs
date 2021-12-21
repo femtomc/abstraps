@@ -5,17 +5,14 @@
 //! and a `OperationPassManager` type which allows construction of nested
 //! passes on the IR.
 
-use crate::core::ir::{Intrinsic, Operation, SupportsVerification};
-use crate::core::key::Key;
+use crate::core::ir::{Intrinsic, Operation, SupportsInterfaceTraits};
 use color_eyre::{eyre::bail, Report};
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::hash::Hash;
 use std::sync::RwLock;
 
-pub trait AnalysisKey {
-    fn to_pass(&self, op: &Operation) -> Box<dyn AnalysisPass>;
-}
+pub trait AnalysisKey {}
 
 pub trait AnalysisPass {
     fn apply(&mut self, op: &Operation) -> Result<(), Report>;
@@ -33,7 +30,7 @@ pub trait AnalysisPass {
 /// as well as a read-write locked `AnalysisManager`,
 /// which the pass can use to ask for the result
 pub struct AnalysisManager {
-    cached: HashMap<Box<dyn Key>, Box<dyn AnalysisPass>>,
+    cached: HashMap<Box<dyn AnalysisKey>, Box<dyn AnalysisPass>>,
 }
 
 impl AnalysisManager {
@@ -43,27 +40,27 @@ impl AnalysisManager {
         }
     }
 
-    pub fn analyze<T>(&mut self, key: T, op: &Operation) -> Result<(), Report>
-    where
-        T: 'static + Eq + Hash + AnalysisKey,
-    {
-        let mut pass = key.to_pass(op);
-        pass.apply(op);
-        self.cached.insert(Box::new(key), pass);
-        Ok(())
-    }
+    //pub fn analyze<T>(&mut self, key: T, op: &Operation) -> Result<(), Report>
+    //where
+    //    T: 'static + Eq + Hash + AnalysisKey,
+    //{
+    //    let mut pass = key.to_pass(op);
+    //    pass.apply(op);
+    //    self.cached.insert(Box::new(key), pass);
+    //    Ok(())
+    //}
 
-    pub fn ask(&self, key: Box<dyn Key>) -> Option<&Box<dyn AnalysisPass>> {
-        if !self.cached.contains_key(&key) {
-            return None;
-        }
-        return Some(self.cached.get(&key).unwrap());
-    }
+    //pub fn ask(&self, key: Box<dyn AnalysisKey>) -> Option<&Box<dyn AnalysisPass>> {
+    //    if !self.cached.contains_key(&key) {
+    //        return None;
+    //    }
+    //    return Some(self.cached.get(&key).unwrap());
+    //}
 }
 
 pub trait PassManager
 where
-    Self: Display,
+    Self: std::fmt::Display,
 {
     /// Check if the pass manager can apply passes to operations
     /// of a specific intrinsic type.
@@ -83,6 +80,8 @@ where
     }
 
     fn reset(&self) -> Box<dyn OperationPass>;
+
+    fn check(&self, op: &RwLock<Operation>) -> Result<(), Report>;
 
     fn apply(
         &self,
@@ -115,7 +114,7 @@ where
         }
     }
 
-    pub fn get_intrinsic_tag(&self) -> &T {
+    pub fn get_intrinsic(&self) -> &T {
         &self.intrinsic_tag
     }
 }
@@ -130,7 +129,9 @@ where
 
     fn prewalk(mut self, op: Operation) -> Result<Operation, Report> {
         if !self.check(&op) {
-            bail!(format!("Operation intrinsic type is not the same as pass manager.\n\nPass manager requires intrinsic of type {:?}.\nFound operation with intrinsic of type {:?}.", self.get_intrinsic_tag(), op.get_intrinsic()))
+            bail!(format!(
+                "Operation intrinsic type is not the same as pass manager."
+            ))
         }
         let analysis_manager = self.analysis_manager.take().unwrap();
         let analysis_lock = RwLock::new(analysis_manager);

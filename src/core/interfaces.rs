@@ -44,7 +44,7 @@ macro_rules! vtable_for {
         let x = ::std::ptr::null::<$x>() as *const $y;
         #[allow(unused_unsafe)]
         unsafe {
-            ::std::mem::transmute::<_, $crate::core::interfaces::TraitObject>(x).vtable
+            ::std::mem::transmute::<_, $crate::TraitObject>(x).vtable
         }
     }};
 }
@@ -57,7 +57,7 @@ macro_rules! mopo {
                 if let Some(vtable) = self.query_vtable(::std::any::TypeId::of::<U>()) {
                     unsafe {
                         let data = self as *const Self;
-                        let u = $crate::core::interfaces::TraitObject {
+                        let u = $crate::TraitObject {
                             data: data as *const (),
                             vtable,
                         };
@@ -71,7 +71,7 @@ macro_rules! mopo {
                 if let Some(vtable) = self.query_vtable(::std::any::TypeId::of::<U>()) {
                     unsafe {
                         let data = self as *mut Self;
-                        let mut u = $crate::core::interfaces::TraitObject {
+                        let mut u = $crate::TraitObject {
                             data: data as *const (),
                             vtable,
                         };
@@ -87,7 +87,7 @@ macro_rules! mopo {
                 if let Some(vtable) = self.query_vtable(::std::any::TypeId::of::<U>()) {
                     unsafe {
                         let data = Box::into_raw(self);
-                        let mut u = $crate::core::interfaces::TraitObject {
+                        let mut u = $crate::TraitObject {
                             data: data as *const (),
                             vtable,
                         };
@@ -105,7 +105,7 @@ macro_rules! mopo {
                 if let Some(vtable) = self_.query_vtable(::std::any::TypeId::of::<U>()) {
                     unsafe {
                         let data = ::std::sync::Arc::into_raw(self_);
-                        let mut u = $crate::core::interfaces::TraitObject {
+                        let mut u = $crate::TraitObject {
                             data: data as *const (),
                             vtable,
                         };
@@ -124,7 +124,7 @@ macro_rules! mopo {
                 if let Some(vtable) = self_.query_vtable(::std::any::TypeId::of::<U>()) {
                     unsafe {
                         let data = ::std::rc::Rc::into_raw(self_);
-                        let mut u = $crate::core::interfaces::TraitObject {
+                        let mut u = $crate::TraitObject {
                             data: data as *const (),
                             vtable,
                         };
@@ -138,15 +138,14 @@ macro_rules! mopo {
                 }
             }
             pub fn obj_partial_eq(&self, other: &Self) -> bool {
-                if let Some(x) = self.query_ref::<dyn $crate::core::interfaces::ObjectPartialEq>() {
+                if let Some(x) = self.query_ref::<dyn $crate::ObjectPartialEq>() {
                     x.obj_eq(other.query_ref().unwrap())
                 } else {
                     (self as *const Self) == (other as *const Self)
                 }
             }
             pub fn obj_partial_cmp(&self, other: &Self) -> Option<::std::cmp::Ordering> {
-                if let Some(x) = self.query_ref::<dyn $crate::core::interfaces::ObjectPartialOrd>()
-                {
+                if let Some(x) = self.query_ref::<dyn $crate::ObjectPartialOrd>() {
                     x.obj_partial_cmp(other.query_ref().unwrap())
                 } else {
                     None
@@ -161,7 +160,7 @@ macro_rules! mopo {
         impl ::std::borrow::ToOwned for $name {
             type Owned = Box<$name>;
             fn to_owned(&self) -> Box<$name> {
-                self.query_ref::<dyn $crate::core::interfaces::ObjectClone>()
+                self.query_ref::<dyn $crate::ObjectClone>()
                     .expect("Object not clonable!")
                     .obj_clone()
                     .query::<$name>()
@@ -170,7 +169,7 @@ macro_rules! mopo {
         }
         impl ::std::fmt::Debug for $name {
             fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-                if let Some(o) = self.query_ref::<dyn Debug>() {
+                if let Some(o) = self.query_ref::<dyn std::fmt::Debug>() {
                     o.fmt(f)
                 } else {
                     writeln!(f, "Object {{ <no `Debug` implementation> }}")
@@ -181,7 +180,7 @@ macro_rules! mopo {
             fn eq(&self, other: &Self) -> bool {
                 // Require `Eq` rather than `PartialEq` as this allows `Object`s to be used as
                 // key in hash maps
-                if let Some(x) = self.query_ref::<dyn $crate::core::interfaces::ObjectEq>() {
+                if let Some(x) = self.query_ref::<dyn $crate::ObjectEq>() {
                     x.obj_eq(other.query_ref().unwrap())
                 } else {
                     // This trivially meets the requirements of `Eq`
@@ -197,7 +196,7 @@ macro_rules! mopo {
         }
         impl ::std::cmp::Ord for $name {
             fn cmp(&self, other: &Self) -> ::std::cmp::Ordering {
-                if let Some(x) = self.query_ref::<dyn $crate::core::interfaces::ObjectOrd>() {
+                if let Some(x) = self.query_ref::<dyn $crate::ObjectOrd>() {
                     if let Some(o) = x.obj_cmp(other.query_ref().unwrap()) {
                         return o;
                     }
@@ -207,7 +206,7 @@ macro_rules! mopo {
         }
         impl ::std::hash::Hash for $name {
             fn hash<H: ::std::hash::Hasher>(&self, state: &mut H) {
-                if let Some(x) = self.query_ref::<dyn $crate::core::interfaces::ObjectHash>() {
+                if let Some(x) = self.query_ref::<dyn $crate::ObjectHash>() {
                     x.obj_hash(state)
                 } else {
                     state.write_usize(self as *const Self as *const () as usize)
@@ -324,21 +323,21 @@ impl<T: Hash + Object> ObjectHash for T {
 macro_rules! interfaces {
     (@unbracket $(($($v:tt)*))*) => ($($($v)*)*);
     (@inner $imp:tt $cond:tt $name:ty: $($iface:ty),+ {}) => (
-        interfaces!(@unbracket $imp ($crate::core::interfaces::HasInterface<$name> for $name) $cond ({}));
-        interfaces!(@unbracket $imp ($crate::core::interfaces::HasInterface<dyn $crate::core::interfaces::Object> for $name) $cond ({}));
-        $(interfaces!(@unbracket $imp ($crate::core::interfaces::HasInterface<$iface> for $name) $cond ({}));)*
-        interfaces!(@unbracket $imp ($crate::core::interfaces::Object for $name) $cond ({
-            fn query_vtable(&self, id: ::std::any::TypeId) -> Option<$crate::core::interfaces::VTable> {
+        interfaces!(@unbracket $imp ($crate::HasInterface<$name> for $name) $cond ({}));
+        interfaces!(@unbracket $imp ($crate::HasInterface<dyn $crate::Object> for $name) $cond ({}));
+        $(interfaces!(@unbracket $imp ($crate::HasInterface<$iface> for $name) $cond ({}));)*
+        interfaces!(@unbracket $imp ($crate::Object for $name) $cond ({
+            fn query_vtable(&self, id: ::std::any::TypeId) -> Option<$crate::VTable> {
                 if id == ::std::any::TypeId::of::<$name>() {
-                    Some($crate::core::interfaces::VTable::none())
-                } else if id == ::std::any::TypeId::of::<dyn $crate::core::interfaces::Object>() {
-                    Some(vtable_for!($name as dyn $crate::core::interfaces::Object))
+                    Some($crate::VTable::none())
+                } else if id == ::std::any::TypeId::of::<dyn $crate::Object>() {
+                    Some(vtable_for!($name as dyn $crate::Object))
                 } else $(if id == ::std::any::TypeId::of::<$iface>() {
                     Some(vtable_for!($name as $iface))
                 } else)* {
                     // If "dynamic" feature is enabled, fall back to
                     // looking in the registry
-                    { $crate::core::interfaces::find_in_registry::<$name>(id) }
+                    { $crate::find_in_registry::<$name>(id) }
                 }
             }
         }));
@@ -529,9 +528,9 @@ pub fn find_in_registry<Type: 'static + ?Sized>(trait_id: TypeId) -> Option<VTab
 #[macro_export]
 macro_rules! dynamic_interfaces {
     ($($name:ty: $($iface:ty),+;)*) => (
-        $crate::core::interfaces::with_registry_mut(|registry| { unsafe { $(
-            registry.register::<$name, $name>($crate::core::interfaces::VTable::none());
-            registry.register::<$name, dyn $crate::core::interfaces::Object>(vtable_for!($name as dyn $crate::core::interfaces::Object));
+        $crate::with_registry_mut(|registry| { unsafe { $(
+            registry.register::<$name, $name>($crate::VTable::none());
+            registry.register::<$name, dyn $crate::Object>(vtable_for!($name as dyn $crate::Object));
             $(
             registry.register::<$name, $iface>(vtable_for!($name as $iface));
             )+

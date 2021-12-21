@@ -1,4 +1,11 @@
-pub mod attributes;
-pub mod intrinsics;
-pub mod passes;
-pub mod traits;
+mod attributes;
+mod intrinsics;
+mod passes;
+mod traits;
+
+pub use self::{
+    attributes::{Symbol, SymbolTable},
+    intrinsics::{Func, Module},
+    passes::PopulateSymbolTablePass,
+    traits::{ProvidesSymbol, ProvidesSymbolTable},
+};

@@ -1,11 +1,9 @@
-use crate::core::{
-    BasicBlock, Graph, Intrinsic, IntrinsicTrait, LocationInfo, OperationBuilder, Region, SSACFG,
-};
 use crate::dialects::builtin::attributes::{Symbol, SymbolTable};
 use crate::dialects::builtin::traits::{ProvidesSymbol, ProvidesSymbolTable};
+use crate::*;
 
 // Module intrinsic.
-#[derive(Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub struct Module;
 
 impl Intrinsic for Module {
@@ -16,12 +14,9 @@ impl Intrinsic for Module {
     fn get_name(&self) -> &str {
         "module"
     }
-
-    fn get_traits(&self) -> Vec<Box<dyn IntrinsicTrait>> {
-        let st = Box::new(ProvidesSymbolTable);
-        vec![st]
-    }
 }
+
+impl ProvidesSymbolTable for Module {}
 
 impl Module {
     pub fn get_builder(&self, name: &str, loc: LocationInfo) -> OperationBuilder {
@@ -39,9 +34,16 @@ impl Module {
     }
 }
 
+interfaces!(
+    Module: dyn ObjectClone,
+    dyn Intrinsic,
+    dyn ProvidesSymbolTable
+);
+
 // Function operation.
-#[derive(Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub struct Func;
+
 impl Intrinsic for Func {
     fn get_namespace(&self) -> &str {
         "builtin"
@@ -50,12 +52,9 @@ impl Intrinsic for Func {
     fn get_name(&self) -> &str {
         "func"
     }
-
-    fn get_traits(&self) -> Vec<Box<dyn IntrinsicTrait>> {
-        let s = Box::new(ProvidesSymbol);
-        vec![s]
-    }
 }
+
+impl ProvidesSymbol for Func {}
 
 impl Func {
     pub fn get_builder(&self, name: &str, loc: LocationInfo) -> OperationBuilder {
@@ -70,3 +69,5 @@ impl Func {
         b
     }
 }
+
+interfaces!(Func: dyn ObjectClone, dyn Intrinsic, dyn ProvidesSymbol);

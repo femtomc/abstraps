@@ -1,8 +1,9 @@
-use abstraps::core::LocationInfo;
-use abstraps::dialects::builtin::intrinsics::{Func, Module};
+use abstraps::dialects::builtin::*;
+use abstraps::*;
 
 #[test]
 fn builtins_module_operation_0() {
+    diagnostics_setup();
     let builder = Module.get_builder("foo", LocationInfo::Unknown);
     let op = builder.finish();
     assert!(op.is_ok());

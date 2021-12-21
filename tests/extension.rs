@@ -1,8 +1,8 @@
-use abstraps::core::{Intrinsic, IntrinsicTrait, LocationInfo, OperationBuilder, Var};
-use abstraps::dialects::builtin::intrinsics::{Func, Module};
+use abstraps::dialects::builtin::*;
+use abstraps::*;
 use color_eyre::Report;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Add;
 
 impl Intrinsic for Add {
@@ -12,10 +12,6 @@ impl Intrinsic for Add {
 
     fn get_name(&self) -> &str {
         "add"
-    }
-
-    fn get_traits(&self) -> Vec<Box<dyn IntrinsicTrait>> {
-        Vec::new()
     }
 }
 
@@ -27,6 +23,8 @@ impl Add {
         b
     }
 }
+
+interfaces!(Add: dyn Intrinsic);
 
 #[test]
 fn extensions_0() -> Result<(), Report> {

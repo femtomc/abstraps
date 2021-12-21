@@ -1,4 +1,4 @@
-use crate::core::{Attribute, AttributeValue, Var};
+use crate::*;
 use std::collections::HashMap;
 use std::fmt;
 use yansi::Paint;
@@ -21,12 +21,14 @@ impl fmt::Display for SymbolTable {
     }
 }
 
-impl Attribute for SymbolTable {
-    fn get_value(&self) -> &dyn AttributeValue {
+impl Attribute for SymbolTable {}
+
+impl AttributeValue<HashMap<String, Var>> for SymbolTable {
+    fn get_value(&self) -> &HashMap<String, Var> {
         &self.0
     }
 
-    fn get_value_mut(&mut self) -> &mut dyn AttributeValue {
+    fn get_value_mut(&mut self) -> &mut HashMap<String, Var> {
         &mut self.0
     }
 }
@@ -41,8 +43,17 @@ impl SymbolTable {
     }
 }
 
+interfaces!(
+    SymbolTable: dyn Attribute,
+    dyn fmt::Display,
+    dyn std::fmt::Debug,
+    dyn AttributeValue<HashMap<String, Var>>
+);
+
 #[derive(Debug)]
 pub struct Symbol(String);
+
+impl Attribute for Symbol {}
 
 impl fmt::Display for Symbol {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -50,12 +61,12 @@ impl fmt::Display for Symbol {
     }
 }
 
-impl Attribute for Symbol {
-    fn get_value(&self) -> &dyn AttributeValue {
+impl AttributeValue<String> for Symbol {
+    fn get_value(&self) -> &String {
         &self.0
     }
 
-    fn get_value_mut(&mut self) -> &mut dyn AttributeValue {
+    fn get_value_mut(&mut self) -> &mut String {
         &mut self.0
     }
 }
@@ -69,3 +80,10 @@ impl Symbol {
         self.0.to_string()
     }
 }
+
+interfaces!(
+    Symbol: dyn Attribute,
+    dyn std::fmt::Display,
+    dyn std::fmt::Debug,
+    dyn AttributeValue<String>
+);

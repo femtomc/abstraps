@@ -1,11 +1,7 @@
-use crate::core::{
-    AnalysisManager, IntrinsicTrait, Operation, OperationPass, SupportsVerification, Var,
-};
 use crate::dialects::builtin::attributes::{Symbol, SymbolTable};
-
 use crate::dialects::builtin::traits::{ProvidesSymbol, ProvidesSymbolTable};
-use color_eyre::Report;
-
+use crate::*;
+use color_eyre::{eyre::bail, Report};
 use std::sync::RwLock;
 
 #[derive(Debug)]
@@ -16,27 +12,45 @@ impl OperationPass for PopulateSymbolTablePass {
         Box::new(PopulateSymbolTablePass)
     }
 
+    fn check(&self, op_lock: &RwLock<Operation>) -> Result<(), Report> {
+        let op = &*op_lock.read().unwrap();
+        let intr = op.get_intrinsic();
+        match intr.query_ref::<dyn ProvidesSymbolTable>() {
+            None => bail!("Operation does not satisfy the `ProvideSymbolTable` interface trait."),
+            Some(v) => v.verify(op)?,
+        }
+        Ok(())
+    }
+
     fn apply(
         &self,
         op_lock: &RwLock<Operation>,
         _analysis_lock: &RwLock<AnalysisManager>,
     ) -> Result<(), Report> {
-        let mut op = op_lock.write().unwrap();
-        let tr = op.get_trait::<ProvidesSymbolTable>()?;
-        let region = &op.get_regions()[0];
-        let mut v: Vec<(String, Var)> = Vec::new();
-        for (var, child) in region.get_block_iter(0) {
-            if child.has_trait::<ProvidesSymbol>() {
-                let s_tr = child.get_trait::<ProvidesSymbol>()?;
-                let s_attr = s_tr.get_attribute(child)?;
-                let s = s_attr.downcast_ref::<Symbol>().unwrap();
-                v.push((s.to_string(), var));
+        let v = {
+            let op = &*op_lock.read().unwrap();
+            let region = &op.get_regions()[0];
+            let mut v: Vec<(String, Var)> = Vec::new();
+            for (var, child) in region.get_block_iter(0) {
+                let intr = child.get_intrinsic();
+                match intr.query_ref::<dyn ProvidesSymbol>() {
+                    None => (),
+                    Some(trt) => match trt.verify(op) {
+                        Ok(_) => v.push((trt.get_value(child).to_string(), var)),
+                        Err(_) => (),
+                    },
+                }
             }
-        }
-        let attr = tr.get_attribute_mut(&mut op)?;
-        let tbl = attr.downcast_mut::<SymbolTable>().unwrap();
-        for (s, v) in v.iter() {
-            tbl.insert(s, *v);
+            v
+        };
+        let mut op = op_lock.write().unwrap();
+        let op_intr = op.get_intrinsic().clone();
+        let tbl = op_intr
+            .query_ref::<dyn ProvidesSymbolTable>()
+            .unwrap()
+            .get_value_mut(&mut *op);
+        for (s, v) in v.into_iter() {
+            tbl.insert(s, v);
         }
         Ok(())
     }

@@ -1,5 +1,4 @@
-use abstraps::core::interfaces::*;
-use abstraps::{dynamic_interfaces, interfaces, vtable_for};
+use abstraps::*;
 use std::fmt::Debug;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
@@ -22,9 +21,7 @@ trait SomeOther {
 }
 
 impl SomeOther for Foo3 {
-    fn do_other(&self) {
-        println!("Yes!");
-    }
+    fn do_other(&self) {}
 }
 
 #[test]
