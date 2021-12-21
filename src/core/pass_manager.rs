@@ -5,14 +5,19 @@
 //! and a `OperationPassManager` type which allows construction of nested
 //! passes on the IR.
 
+use crate::core::interfaces::*;
 use crate::core::ir::{Intrinsic, Operation, SupportsInterfaceTraits};
 use color_eyre::{eyre::bail, Report};
+use downcast_rs::{impl_downcast, Downcast};
 use std::collections::HashMap;
-
-
+use std::hash::Hash;
 use std::sync::RwLock;
 
-pub trait AnalysisKey {}
+pub trait AnalysisKey: Downcast + Object {
+    fn to_pass(&self, _op: &Operation) -> Box<dyn AnalysisPass>;
+}
+mopo!(dyn AnalysisKey);
+impl_downcast!(AnalysisKey);
 
 pub trait AnalysisPass {
     fn apply(&mut self, op: &Operation) -> Result<(), Report>;
@@ -40,22 +45,22 @@ impl AnalysisManager {
         }
     }
 
-    //pub fn analyze<T>(&mut self, key: T, op: &Operation) -> Result<(), Report>
-    //where
-    //    T: 'static + Eq + Hash + AnalysisKey,
-    //{
-    //    let mut pass = key.to_pass(op);
-    //    pass.apply(op);
-    //    self.cached.insert(Box::new(key), pass);
-    //    Ok(())
-    //}
+    pub fn analyze<T>(&mut self, key: T, op: &Operation) -> Result<(), Report>
+    where
+        T: 'static + Eq + Hash + AnalysisKey,
+    {
+        let mut pass = key.to_pass(op);
+        pass.apply(op);
+        self.cached.insert(Box::new(key), pass);
+        Ok(())
+    }
 
-    //pub fn ask(&self, key: Box<dyn AnalysisKey>) -> Option<&Box<dyn AnalysisPass>> {
-    //    if !self.cached.contains_key(&key) {
-    //        return None;
-    //    }
-    //    return Some(self.cached.get(&key).unwrap());
-    //}
+    pub fn ask(&self, key: Box<dyn AnalysisKey>) -> Option<&Box<dyn AnalysisPass>> {
+        if !self.cached.contains_key(&key) {
+            return None;
+        }
+        return Some(self.cached.get(&key).unwrap());
+    }
 }
 
 pub trait PassManager

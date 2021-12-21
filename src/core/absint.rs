@@ -1,7 +1,7 @@
 use crate::core::builder::OperationBuilder;
-use crate::core::ir::{Operation, SupportsVerification, Var};
-use crate::core::pass_manager::{AnalysisKey, AnalysisPass};
-use color_eyre::{Report};
+use crate::core::ir::{Operation, SupportsInterfaceTraits, Var};
+use crate::core::pass_manager::AnalysisPass;
+use color_eyre::{eyre::bail, Report};
 use std::collections::VecDeque;
 use std::fmt;
 use std::hash::{Hash, Hasher};
@@ -59,7 +59,7 @@ pub trait LatticeConvert<L> {
 
 impl<L> Interpreter<L>
 where
-    L: Clone + LatticeJoin,
+    L: Clone + LatticeJoin + 'static,
 {
     pub fn new(_op: &Operation, env: Vec<Option<L>>) -> Interpreter<L> {
         let vd = VecDeque::<usize>::new();
@@ -72,20 +72,37 @@ where
         }
     }
 
+    pub fn get(&self, v: Var) -> Result<L, Report> {
+        match self.env.get(v.get_id()) {
+            Some(l) => match l {
+                Some(l) => Ok(l.clone()),
+                None => bail!(format!("No type for SSA variable {}.", v)),
+            },
+            None => bail!(format!("No type for SSA variable {}.", v)),
+        }
+    }
+
+    pub fn resolve_to_lattice(&self, op: &Operation) -> Result<Vec<L>, Report> {
+        let operands = op.get_operands();
+        operands
+            .into_iter()
+            .map(|v| self.get(v))
+            .collect::<Result<Vec<_>, _>>()
+    }
+
     pub fn insert(&mut self, _v: Var, _l: L) {}
 
     pub fn step(&mut self, op: &Operation) -> Result<(), Report> {
-        for (_v, _o) in op.get_regions()[0].get_block_iter(self.active) {
-            //let id = op.get_intrinsic().get_unique_id();
-            //let lifted: Option<L> = LatticeSemantics::parse(&id);
-            //match lifted {
-            //    None => bail!(format!("Failed to lift {} to lattice.", op.get_intrinsic())),
-            //    Some(intr) => {
-            //        let lvec = self.resolve_to_lattice(o);
-            //        let ltype = intr.propagate(lvec);
-            //        self.insert(v, ltype);
-            //    }
-            //};
+        for (v, o) in op.get_regions()[0].get_block_iter(self.active) {
+            let intr = o.get_intrinsic();
+            match intr.query_ref::<dyn LatticeSemantics<L>>() {
+                None => bail!("Intrinsic fails to support lattice semantics."),
+                Some(lintr) => {
+                    let lvec = self.resolve_to_lattice(o)?;
+                    let ltype = lintr.propagate(lvec)?;
+                    self.insert(v, ltype);
+                }
+            }
         }
         Ok(())
     }
@@ -136,19 +153,6 @@ where
     }
 }
 
-impl<L> AnalysisKey for TypeKey<L>
-where
-    L: 'static + Clone + LatticeJoin,
-{
-    fn to_pass(&self, _op: &Operation) -> Box<dyn AnalysisPass> {
-        let pass = LatticeInterpreterPass {
-            key: self.clone(),
-            result: None,
-        };
-        Box::new(pass)
-    }
-}
-
 impl<L> std::fmt::Display for TypeKey<L>
 where
     L: std::fmt::Display,
@@ -173,7 +177,7 @@ pub struct LatticeInterpreterPass<L> {
 
 impl<L> AnalysisPass for LatticeInterpreterPass<L>
 where
-    L: Clone + LatticeJoin,
+    L: Clone + LatticeJoin + 'static,
 {
     fn apply(&mut self, op: &Operation) -> Result<(), Report> {
         let mut interp = Interpreter::new(op, self.key.env.to_vec());
