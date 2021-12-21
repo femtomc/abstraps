@@ -1,9 +1,8 @@
 use abstraps::core::{
-    diagnostics_setup, AnalysisManager, Intrinsic, IntrinsicTrait, LatticeJoin,
-    LocationInfo, OperationBuilder, TypeKey, Var,
+    diagnostics_setup, AnalysisManager, Intrinsic, IntrinsicTrait, LatticeSemantics, LocationInfo,
+    OperationBuilder, TypeKey, Var,
 };
-use abstraps::dialects::builtin::intrinsics::{Func};
-
+use abstraps::dialects::builtin::intrinsics::Func;
 
 use color_eyre::Report;
 
@@ -38,9 +37,17 @@ enum ArithLattice {
     Int64,
 }
 
-impl LatticeJoin for ArithLattice {
+impl LatticeSemantics for ArithLattice {
+    fn parse(id: &str) -> Option<ArithLattice> {
+        return None;
+    }
+
     fn join(&self, _other: &ArithLattice) -> ArithLattice {
         self.clone()
+    }
+
+    fn propagate(&self, v: Vec<ArithLattice>) -> Result<ArithLattice, Report> {
+        return Ok(self.clone());
     }
 }
 

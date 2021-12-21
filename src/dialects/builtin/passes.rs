@@ -1,11 +1,10 @@
 use crate::core::{
-    AnalysisManager, IntrinsicTrait, Operation, OperationPass,
-    SupportsVerification, Var,
+    AnalysisManager, IntrinsicTrait, Operation, OperationPass, SupportsVerification, Var,
 };
 use crate::dialects::builtin::attributes::{Symbol, SymbolTable};
 
 use crate::dialects::builtin::traits::{ProvidesSymbol, ProvidesSymbolTable};
-use color_eyre::{Report};
+use color_eyre::Report;
 
 use std::sync::RwLock;
 
@@ -26,7 +25,7 @@ impl OperationPass for PopulateSymbolTablePass {
         let tr = op.get_trait::<ProvidesSymbolTable>()?;
         let region = &op.get_regions()[0];
         let mut v: Vec<(String, Var)> = Vec::new();
-        for (var, child) in region.block_iter(0) {
+        for (var, child) in region.get_block_iter(0) {
             if child.has_trait::<ProvidesSymbol>() {
                 let s_tr = child.get_trait::<ProvidesSymbol>()?;
                 let s_attr = s_tr.get_attribute(child)?;

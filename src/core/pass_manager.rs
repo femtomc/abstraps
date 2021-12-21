@@ -8,15 +8,10 @@
 use crate::core::ir::{Intrinsic, Operation, SupportsVerification};
 use crate::core::key::Key;
 use color_eyre::{eyre::bail, Report};
-
-
-use std::collections::{HashMap};
+use std::collections::HashMap;
 use std::fmt::Display;
-use std::hash::{Hash};
-
-
-use std::sync::{RwLock};
-
+use std::hash::Hash;
+use std::sync::RwLock;
 
 pub trait AnalysisKey {
     fn to_pass(&self, op: &Operation) -> Box<dyn AnalysisPass>;

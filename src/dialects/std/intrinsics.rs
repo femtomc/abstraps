@@ -1,6 +1,4 @@
-use crate::core::{
-    Intrinsic, IntrinsicTrait, LocationInfo, OperationBuilder, Var,
-};
+use crate::core::{Intrinsic, IntrinsicTrait, LocationInfo, OperationBuilder, Var};
 use crate::dialects::builtin::attributes::Symbol;
 use crate::dialects::builtin::traits::ProvidesSymbol;
 

@@ -17,6 +17,10 @@ impl Default for Graph {
 }
 
 impl Graph {
+    pub fn len(&self) -> usize {
+        self.defs.len()
+    }
+
     /// Get the block index and SSA index for `v: Var`.
     fn get_var_blockidx(&self, v: Var) -> Option<(usize, i32)> {
         let (b, i) = self.defs.get(v.get_id()).unwrap_or(&(-1, -1));

@@ -10,13 +10,13 @@
 //! https://en.wikipedia.org/wiki/Static_single_assignment_form
 //! for more background on SSA.
 
-
 use crate::core::diagnostics::LocationInfo;
 use crate::core::region::Region;
 use alloc::string::String;
 use alloc::vec::Vec;
 use color_eyre::{eyre::bail, Report};
 use downcast_rs::{impl_downcast, Downcast};
+use query_interface::{Object, ObjectClone};
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 
@@ -65,6 +65,9 @@ where
     fn get_namespace(&self) -> &str;
     fn get_name(&self) -> &str;
     fn get_traits(&self) -> Vec<Box<dyn IntrinsicTrait>>;
+    fn get_unique_id(&self) -> String {
+        format!("{}.{}", self.get_namespace(), self.get_name())
+    }
 }
 impl_downcast!(Intrinsic);
 

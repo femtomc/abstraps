@@ -9,3 +9,6 @@ extern crate alloc;
 extern crate color_eyre;
 extern crate tracing;
 extern crate tracing_subscriber;
+
+#[macro_use]
+extern crate query_interface;

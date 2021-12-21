@@ -17,6 +17,10 @@ impl Default for SSACFG {
 }
 
 impl SSACFG {
+    pub fn len(&self) -> usize {
+        self.defs.len()
+    }
+
     pub fn get_operands(&self) -> &[Var] {
         self.blocks[0].get_operands()
     }

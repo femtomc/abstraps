@@ -1,9 +1,8 @@
 use crate::core::builder::OperationBuilder;
-use crate::core::ir::{Operation, Var};
+use crate::core::ir::{Operation, SupportsVerification, Var};
 use crate::core::pass_manager::{AnalysisKey, AnalysisPass};
-use color_eyre::{Report};
-
-use std::collections::{VecDeque};
+use color_eyre::{eyre::bail, Report};
+use std::collections::VecDeque;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
@@ -17,18 +16,6 @@ pub enum InterpreterState<L> {
     Waiting(TypeKey<L>),
     Error(InterpreterError),
     Finished,
-}
-
-// This is a block interpretation frame.
-// It contains an index pointer to the block.
-// As well as a local interpretation environment,
-// and the vector of instruction indices
-// which need to be inferred.
-#[derive(Debug)]
-pub struct BlockFrame<L> {
-    block_ptr: usize,
-    block_env: Vec<Option<L>>,
-    lines: VecDeque<Var>,
 }
 
 /// This is the packaged up form of analysis
@@ -52,8 +39,8 @@ where
 #[derive(Debug)]
 pub struct Interpreter<L> {
     state: InterpreterState<L>,
-    active: BlockFrame<L>,
-    block_queue: VecDeque<BlockFrame<L>>,
+    active: usize,
+    block_queue: VecDeque<usize>,
     env: Vec<Option<L>>,
     trace: Option<OperationBuilder>,
 }
@@ -75,20 +62,32 @@ where
     L: Clone + LatticeJoin,
 {
     pub fn new(_op: &Operation, env: Vec<Option<L>>) -> Interpreter<L> {
-        let bf = BlockFrame {
-            block_ptr: 0,
-            block_env: Vec::new(),
-            lines: VecDeque::new(),
-        };
-
-        let vd = VecDeque::<BlockFrame<L>>::new();
+        let vd = VecDeque::<usize>::new();
         Interpreter {
             state: InterpreterState::Active,
-            active: bf,
+            active: 0,
             block_queue: vd,
             env,
             trace: None,
         }
+    }
+
+    pub fn insert(&mut self, v: Var, l: L) {}
+
+    pub fn step(&mut self, op: &Operation) -> Result<(), Report> {
+        for (v, o) in op.get_regions()[0].get_block_iter(self.active) {
+            //let id = op.get_intrinsic().get_unique_id();
+            //let lifted: Option<L> = LatticeSemantics::parse(&id);
+            //match lifted {
+            //    None => bail!(format!("Failed to lift {} to lattice.", op.get_intrinsic())),
+            //    Some(intr) => {
+            //        let lvec = self.resolve_to_lattice(o);
+            //        let ltype = intr.propagate(lvec);
+            //        self.insert(v, ltype);
+            //    }
+            //};
+        }
+        Ok(())
     }
 }
 
@@ -177,7 +176,8 @@ where
     L: Clone + LatticeJoin,
 {
     fn apply(&mut self, op: &Operation) -> Result<(), Report> {
-        let _interp = Interpreter::new(op, self.key.env.to_vec());
+        let mut interp = Interpreter::new(op, self.key.env.to_vec());
+        interp.step(op);
         Ok(())
     }
 }

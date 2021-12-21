@@ -62,7 +62,7 @@ impl fmt::Display for Region {
                         write!(f, ")")?;
                     }
                     writeln!(f)?;
-                    for (v, op) in self.block_iter(ind) {
+                    for (v, op) in self.get_block_iter(ind) {
                         writeln!(indented(f).with_str("  "), "{} = {}", v, op)?;
                     }
                 }
@@ -70,7 +70,7 @@ impl fmt::Display for Region {
             }
 
             Region::Undirected(_) => {
-                for (v, op) in self.block_iter(0) {
+                for (v, op) in self.get_block_iter(0) {
                     writeln!(indented(f).with_str("  "), "{} = {}", v, op)?;
                 }
                 Ok(())

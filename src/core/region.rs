@@ -15,6 +15,13 @@ pub enum Region {
 }
 
 impl Region {
+    pub fn len(&self) -> usize {
+        match self {
+            Region::Directed(ssacfg) => ssacfg.len(),
+            Region::Undirected(graph) => graph.len(),
+        }
+    }
+
     pub fn push_arg(&mut self, ind: usize) -> Result<Var, Report> {
         match self {
             Region::Directed(ssacfg) => Ok(ssacfg.push_arg(ind)),
@@ -85,7 +92,7 @@ impl<'b> Iterator for ImmutableBlockIterator<'b> {
 
 impl Region {
     /// Get an immutable iterator over basic blocks.
-    pub fn block_iter(&self, id: usize) -> ImmutableBlockIterator {
+    pub fn get_block_iter(&self, id: usize) -> ImmutableBlockIterator {
         let ks = match self {
             Region::Directed(ssacfg) => ssacfg.get_block_vars(id),
             Region::Undirected(graph) => graph.get_block_vars(),
