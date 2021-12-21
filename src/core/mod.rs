@@ -2,20 +2,17 @@ mod absint;
 mod builder;
 mod diagnostics;
 mod display;
-mod graph;
 pub mod interfaces;
 mod ir;
 mod key;
 mod pass_manager;
 mod region;
-mod ssacfg;
 
 // Public API.
 pub use self::{
     absint::{LatticeJoin, LatticeSemantics, TypeKey},
     builder::OperationBuilder,
     diagnostics::{diagnostics_setup, LocationInfo},
-    graph::Graph,
     ir::{
         Attribute, AttributeValue, BasicBlock, Intrinsic, IntrinsicTrait, Operation,
         SupportsVerification, Var,
@@ -24,6 +21,5 @@ pub use self::{
     pass_manager::{
         AnalysisKey, AnalysisManager, OperationPass, OperationPassManager, PassManager,
     },
-    region::Region,
-    ssacfg::SSACFG,
+    region::{Graph, Region, SSACFG},
 };
