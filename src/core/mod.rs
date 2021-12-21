@@ -3,6 +3,7 @@ mod builder;
 mod diagnostics;
 mod display;
 mod graph;
+pub mod interfaces;
 mod ir;
 mod key;
 mod pass_manager;
@@ -11,7 +12,7 @@ mod ssacfg;
 
 // Public API.
 pub use self::{
-    absint::{LatticeSemantics, TypeKey},
+    absint::{LatticeJoin, LatticeSemantics, TypeKey},
     builder::OperationBuilder,
     diagnostics::{diagnostics_setup, LocationInfo},
     graph::Graph,

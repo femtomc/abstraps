@@ -16,7 +16,6 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use color_eyre::{eyre::bail, Report};
 use downcast_rs::{impl_downcast, Downcast};
-use query_interface::{Object, ObjectClone};
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 
