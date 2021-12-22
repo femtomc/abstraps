@@ -1,6 +1,5 @@
 use color_eyre::Report;
 
-
 /// Diagnostics setup for tracing and error reporting.
 pub fn diagnostics_setup() -> Result<(), Report> {
     if std::env::var("RUST_LIB_BACKTRACE").is_err() {
