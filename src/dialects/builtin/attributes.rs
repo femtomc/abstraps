@@ -37,10 +37,6 @@ impl SymbolTable {
     pub fn new() -> SymbolTable {
         SymbolTable(HashMap::new())
     }
-
-    pub fn insert(&mut self, s: &str, v: Var) {
-        self.0.insert(s.to_string(), v);
-    }
 }
 
 interfaces!(
@@ -74,10 +70,6 @@ impl AttributeValue<String> for Symbol {
 impl Symbol {
     pub fn new(s: &str) -> Symbol {
         Symbol(s.to_string())
-    }
-
-    pub fn to_string(&self) -> String {
-        self.0.to_string()
     }
 }
 

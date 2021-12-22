@@ -141,7 +141,10 @@ macro_rules! mopo {
                 if let Some(x) = self.query_ref::<dyn $crate::ObjectPartialEq>() {
                     x.obj_eq(other.query_ref().unwrap())
                 } else {
-                    (self as *const Self) == (other as *const Self)
+                    std::ptr::eq(
+                        self as *const _ as *const (),
+                        other as *const _ as *const (),
+                    )
                 }
             }
             pub fn obj_partial_cmp(&self, other: &Self) -> Option<::std::cmp::Ordering> {
@@ -184,7 +187,10 @@ macro_rules! mopo {
                     x.obj_eq(other.query_ref().unwrap())
                 } else {
                     // This trivially meets the requirements of `Eq`
-                    (self as *const Self) == (other as *const Self)
+                    std::ptr::eq(
+                        self as *const _ as *const (),
+                        other as *const _ as *const (),
+                    )
                 }
             }
         }
