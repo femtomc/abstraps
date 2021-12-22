@@ -136,7 +136,7 @@ mod mlir_tests {
 
 */
 
-use crate::ir::{ExtIR, Instruction, Var};
+use crate::core::ir::{ExtIR, Instruction, Var};
 use std::collections::HashMap;
 use std::ffi::CString;
 use std::sync::{Arc, RwLock};
