@@ -1,10 +1,10 @@
-use crate::core::builder::OperationBuilder;
-use crate::core::ir::{Operation, SupportsInterfaceTraits, Var};
-use crate::core::pass_manager::AnalysisPass;
+use crate::*;
 use color_eyre::{eyre::bail, Report};
 use std::collections::VecDeque;
 use std::fmt;
+use std::fmt::Display;
 use std::hash::{Hash, Hasher};
+use yansi::Paint;
 
 #[derive(Debug)]
 pub enum InterpreterError {}
@@ -13,7 +13,7 @@ pub enum InterpreterError {}
 pub enum InterpreterState<L> {
     Inactive,
     Active,
-    Waiting(TypeKey<L>),
+    Waiting(Signature<L>),
     Error(InterpreterError),
     Finished,
 }
@@ -23,8 +23,23 @@ pub enum InterpreterState<L> {
 /// on a particular operation.
 #[derive(Debug)]
 pub struct InterpreterFrame<L> {
-    vs: Vec<L>,
+    vs: Vec<Option<L>>,
     trace: Option<Operation>,
+}
+
+impl<L> Display for InterpreterFrame<L>
+where
+    L: Display,
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        for (ind, typ) in self.vs.iter().enumerate() {
+            match typ {
+                None => writeln!(f, "%{}", ind)?,
+                Some(v) => writeln!(f, "%{} : {}", ind, Paint::magenta(format!("{}", v)))?,
+            }
+        }
+        Ok(())
+    }
 }
 
 impl<L> InterpreterFrame<L>
@@ -32,7 +47,7 @@ where
     L: Clone,
 {
     pub fn get_ret(&self) -> Option<L> {
-        self.vs.last().cloned()
+        self.vs.last().and_then(|v| v.clone())
     }
 }
 
@@ -72,6 +87,14 @@ where
         }
     }
 
+    pub fn clone_frame(&self) -> Result<InterpreterFrame<L>, Report> {
+        let frame = InterpreterFrame {
+            vs: self.env.to_vec(),
+            trace: None,
+        };
+        Ok(frame)
+    }
+
     pub fn get(&self, v: Var) -> Result<&L, Report> {
         match self.env.get(v.get_id()) {
             Some(l) => match l {
@@ -90,7 +113,14 @@ where
             .collect::<Result<Vec<_>, _>>()
     }
 
-    pub fn insert(&mut self, _v: Var, _l: L) {}
+    // TODO: Change.
+    pub fn insert(&mut self, v: Var, l: L) {
+        if self.env.len() < (v.get_id() - 1) {
+            self.env.push(Some(l));
+        } else {
+            self.env.insert(v.get_id(), Some(l));
+        }
+    }
 
     pub fn step(&mut self, op: &Operation) -> Result<(), Report> {
         for (v, o) in op.get_regions()[0].get_block_iter(self.active) {
@@ -113,21 +143,21 @@ where
 /////
 
 #[derive(Debug, Clone)]
-pub struct TypeKey<L> {
+pub struct Signature<L> {
     symbol: String,
     env: Vec<Option<L>>,
 }
 
-impl<L> TypeKey<L> {
-    pub fn new(symbol: &str, env: Vec<Option<L>>) -> TypeKey<L> {
-        TypeKey {
+impl<L> Signature<L> {
+    pub fn new(symbol: &str, env: Vec<Option<L>>) -> Signature<L> {
+        Signature {
             symbol: symbol.to_string(),
             env,
         }
     }
 }
 
-impl<L> PartialEq for TypeKey<L>
+impl<L> PartialEq for Signature<L>
 where
     L: PartialEq,
 {
@@ -136,9 +166,9 @@ where
     }
 }
 
-impl<L> Eq for TypeKey<L> where L: Eq {}
+impl<L> Eq for Signature<L> where L: Eq {}
 
-impl<L> Hash for TypeKey<L>
+impl<L> Hash for Signature<L>
 where
     L: Hash,
 {
@@ -153,35 +183,74 @@ where
     }
 }
 
-impl<L> std::fmt::Display for TypeKey<L>
+impl<L> AnalysisKey for Signature<L>
 where
-    L: std::fmt::Display,
+    L: 'static + Clone + LatticeJoin + Display,
+{
+    fn to_pass(&self, _op: &Operation) -> Box<dyn AnalysisPass> {
+        let pass = LatticeInterpreterPass {
+            key: self.clone(),
+            result: None,
+        };
+        Box::new(pass)
+    }
+}
+
+impl<L> Display for Signature<L>
+where
+    L: Display,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}(", self.symbol)?;
-        for lval in self.env.iter() {
-            match lval {
-                None => (),
-                Some(v) => write!(f, "{}, ", v)?,
-            };
+        write!(f, "{}(", Paint::blue(&self.symbol))?;
+        let l = self.env.len();
+        for (ind, lval) in self.env.iter().enumerate() {
+            match ind == l - 1 {
+                false => match lval {
+                    None => (),
+                    Some(v) => write!(f, "{}", Paint::magenta(format!("{}, ", v)).bold())?,
+                },
+                true => match lval {
+                    None => (),
+                    Some(v) => write!(f, "{}", Paint::magenta(format!("{}", v)).bold())?,
+                },
+            }
+        }
+        write!(f, ")")?;
+        Ok(())
+    }
+}
+
+interfaces!(<L: 'static + LatticeJoin + Display> Signature<L>: dyn ObjectClone, dyn Display, dyn AnalysisKey where L: Clone);
+
+#[derive(Debug)]
+pub struct LatticeInterpreterPass<L> {
+    key: Signature<L>,
+    result: Option<InterpreterFrame<L>>,
+}
+
+impl<L> Display for LatticeInterpreterPass<L>
+where
+    L: Display,
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match &self.result {
+            None => (),
+            Some(v) => write!(f, "{}", v)?,
         }
         Ok(())
     }
 }
 
-#[derive(Debug)]
-pub struct LatticeInterpreterPass<L> {
-    key: TypeKey<L>,
-    result: Option<InterpreterFrame<L>>,
-}
-
 impl<L> AnalysisPass for LatticeInterpreterPass<L>
 where
-    L: Clone + LatticeJoin + 'static,
+    L: 'static + LatticeJoin + Clone + Display,
 {
     fn apply(&mut self, op: &Operation) -> Result<(), Report> {
         let mut interp = Interpreter::new(op, self.key.env.to_vec());
-        interp.step(op);
+        interp.step(op)?;
+        self.result = Some(interp.clone_frame().unwrap());
         Ok(())
     }
 }
+
+interfaces!(<L: 'static + LatticeJoin + Display> LatticeInterpreterPass<L>: dyn Display, dyn AnalysisPass where L: Clone);

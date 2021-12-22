@@ -191,3 +191,21 @@ where
         Ok(())
     }
 }
+
+use crate::core::pass_manager::AnalysisManager;
+impl fmt::Display for AnalysisManager {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(f, "({})", Paint::green("AnalysisManager").bold())?;
+        for (key, analysis) in self.get_cached().iter() {
+            match key.query_ref::<dyn fmt::Display>() {
+                None => (),
+                Some(v) => writeln!(indented(f), "{} =>", v)?,
+            }
+            match analysis.query_ref::<dyn fmt::Display>() {
+                None => (),
+                Some(v) => writeln!(indented(&mut indented(f)).with_str("| "), "{}", v)?,
+            }
+        }
+        Ok(())
+    }
+}

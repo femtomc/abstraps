@@ -14,14 +14,16 @@ use std::hash::Hash;
 use std::sync::RwLock;
 
 pub trait AnalysisKey: Downcast + Object {
-    fn to_pass(&self, _op: &Operation) -> Box<dyn AnalysisPass>;
+    fn to_pass(&self, op: &Operation) -> Box<dyn AnalysisPass>;
 }
 mopo!(dyn AnalysisKey);
 impl_downcast!(AnalysisKey);
 
-pub trait AnalysisPass {
+pub trait AnalysisPass: Downcast + Object {
     fn apply(&mut self, op: &Operation) -> Result<(), Report>;
 }
+mopo!(dyn AnalysisPass);
+impl_downcast!(AnalysisPass);
 
 /// `AnalysisManager` is a type which manages
 /// static analyses of operations, often required
@@ -45,12 +47,16 @@ impl AnalysisManager {
         }
     }
 
+    pub fn get_cached(&self) -> &HashMap<Box<dyn AnalysisKey>, Box<dyn AnalysisPass>> {
+        &self.cached
+    }
+
     pub fn analyze<T>(&mut self, key: T, op: &Operation) -> Result<(), Report>
     where
         T: 'static + Eq + Hash + AnalysisKey,
     {
         let mut pass = key.to_pass(op);
-        pass.apply(op);
+        pass.apply(op)?;
         self.cached.insert(Box::new(key), pass);
         Ok(())
     }

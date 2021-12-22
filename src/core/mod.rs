@@ -10,7 +10,7 @@ mod region;
 
 // Public API.
 pub use self::{
-    absint::{LatticeJoin, LatticeSemantics, TypeKey},
+    absint::{LatticeJoin, LatticeSemantics, Signature},
     builder::OperationBuilder,
     diagnostics::{diagnostics_setup, LocationInfo},
     interfaces::*,
@@ -18,7 +18,8 @@ pub use self::{
         Attribute, AttributeValue, BasicBlock, Intrinsic, Operation, SupportsInterfaceTraits, Var,
     },
     pass_manager::{
-        AnalysisKey, AnalysisManager, OperationPass, OperationPassManager, PassManager,
+        AnalysisKey, AnalysisManager, AnalysisPass, OperationPass, OperationPassManager,
+        PassManager,
     },
     region::{Graph, Region, SSACFG},
 };
