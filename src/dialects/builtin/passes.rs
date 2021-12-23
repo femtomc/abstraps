@@ -1,6 +1,7 @@
 use crate::dialects::builtin::traits::{ProvidesSymbol, ProvidesSymbolTable};
 use crate::*;
 use std::sync::RwLock;
+use yansi::Paint;
 
 #[derive(Debug)]
 pub struct PopulateSymbolTablePass;
@@ -14,7 +15,10 @@ impl OperationPass for PopulateSymbolTablePass {
         let op = &*op_lock.read().unwrap();
         let intr = op.get_intrinsic();
         match intr.query_ref::<dyn ProvidesSymbolTable>() {
-            None => bail!("Operation does not satisfy the `ProvideSymbolTable` interface trait."),
+            None => bail!(format!(
+                "Operation does not satisfy the {} interface trait.",
+                Paint::magenta("ProvidesSymbolTable").bold()
+            )),
             Some(v) => v.verify(op)?,
         }
         Ok(())

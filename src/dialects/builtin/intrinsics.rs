@@ -1,5 +1,5 @@
 use crate::dialects::builtin::attributes::{Symbol, SymbolTable};
-use crate::dialects::builtin::traits::{ProvidesSymbol, ProvidesSymbolTable};
+use crate::dialects::builtin::traits::{ProvidesSymbol, ProvidesSymbolTable, RequiresTerminators};
 use crate::*;
 
 // Module intrinsic.
@@ -22,7 +22,7 @@ impl Module {
 }
 
 // Function intrinsic.
-intrinsic!(Func, "builtin", "func", ProvidesSymbol);
+intrinsic!(Func, "builtin", "func", ProvidesSymbol, RequiresTerminators);
 
 impl Func {
     pub fn get_builder(&self, name: &str, loc: LocationInfo) -> OperationBuilder {

@@ -22,7 +22,8 @@ fn passes_0() -> Result<(), Report> {
     let add1 = Add.get_builder(operands, LocationInfo::Unknown);
     let ret = func1.push(add1)?;
     let add2 = Add.get_builder(vec![ret, ret], LocationInfo::Unknown);
-    func1.push(add2)?;
+    let v = func1.push(add2)?;
+    func1.push(Return.get_builder(vec![v], LocationInfo::Unknown))?;
     let mut func2 = Func.get_builder("new_func2", LocationInfo::Unknown);
     let operands = vec![func2.push_arg()?, func2.push_arg()?];
     let add1 = Add.get_builder(operands, LocationInfo::Unknown);

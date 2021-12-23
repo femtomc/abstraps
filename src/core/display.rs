@@ -199,11 +199,11 @@ impl fmt::Display for AnalysisManager {
         for (key, analysis) in self.get_cached().iter() {
             match key.query_ref::<dyn fmt::Display>() {
                 None => (),
-                Some(v) => writeln!(indented(f), "{} =>", v)?,
+                Some(v) => writeln!(indented(f).with_str(" "), "{} =>", v)?,
             }
             match analysis.query_ref::<dyn fmt::Display>() {
                 None => (),
-                Some(v) => writeln!(indented(&mut indented(f)).with_str("| "), "{}", v)?,
+                Some(v) => writeln!(indented(f).with_str(" | "), "{}", v)?,
             }
         }
         Ok(())

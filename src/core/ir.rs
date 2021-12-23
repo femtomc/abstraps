@@ -82,7 +82,7 @@ macro_rules! intrinsic {
 
         interfaces!($struct: dyn ObjectClone,
             dyn Intrinsic,
-            $(dyn $trait)*);
+            $(dyn $trait),*);
     };
 }
 
@@ -94,7 +94,7 @@ pub trait AttributeValue<T> {
     fn get_value_mut(&mut self) -> &mut T;
 }
 
-pub trait SupportsInterfaceTraits {
+pub trait SupportsInterfaceTraits: std::fmt::Display {
     fn get_intrinsic(&self) -> &Box<dyn Intrinsic>;
     fn get_regions(&self) -> &[Region];
     fn get_attributes(&self) -> &HashMap<String, Box<dyn Attribute>>;

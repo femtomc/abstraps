@@ -21,7 +21,7 @@ impl Call {
 }
 
 // Return intrinsic.
-intrinsic!(Return, "std", "return");
+intrinsic!(Return, "std", "return", Terminator);
 
 impl Return {
     pub fn get_builder(&self, operands: Vec<Var>, loc: LocationInfo) -> OperationBuilder {
