@@ -7,5 +7,5 @@ pub use self::{
     attributes::{Symbol, SymbolTable},
     intrinsics::{Func, Module},
     passes::PopulateSymbolTablePass,
-    traits::{ProvidesSymbol, ProvidesSymbolTable, RequiresTerminators, Terminator},
+    traits::{NonVariadic, ProvidesSymbol, ProvidesSymbolTable, RequiresTerminators, Terminator},
 };

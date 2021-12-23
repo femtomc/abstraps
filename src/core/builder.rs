@@ -29,6 +29,10 @@ impl SupportsInterfaceTraits for OperationBuilder {
         &self.intrinsic
     }
 
+    fn get_operands(&self) -> &[Var] {
+        &self.operands
+    }
+
     fn get_regions(&self) -> &[Region] {
         &self.regions
     }

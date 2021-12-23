@@ -96,6 +96,7 @@ pub trait AttributeValue<T> {
 
 pub trait SupportsInterfaceTraits: std::fmt::Display {
     fn get_intrinsic(&self) -> &Box<dyn Intrinsic>;
+    fn get_operands(&self) -> &[Var];
     fn get_regions(&self) -> &[Region];
     fn get_attributes(&self) -> &HashMap<String, Box<dyn Attribute>>;
     fn get_attributes_mut(&mut self) -> &mut HashMap<String, Box<dyn Attribute>>;
@@ -124,6 +125,10 @@ impl Hash for Operation {
 impl SupportsInterfaceTraits for Operation {
     fn get_intrinsic(&self) -> &Box<dyn Intrinsic> {
         &self.intrinsic
+    }
+
+    fn get_operands(&self) -> &[Var] {
+        &self.operands
     }
 
     fn get_regions(&self) -> &[Region] {
