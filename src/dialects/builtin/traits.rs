@@ -1,5 +1,5 @@
 use crate::core::{AttributeValue, SupportsInterfaceTraits, Var};
-use color_eyre::{eyre::bail, Report};
+use crate::{bail, Report};
 use std::collections::HashMap;
 
 pub trait ProvidesSymbolTable {

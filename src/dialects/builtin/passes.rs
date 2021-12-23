@@ -1,6 +1,5 @@
 use crate::dialects::builtin::traits::{ProvidesSymbol, ProvidesSymbolTable};
 use crate::*;
-use color_eyre::{eyre::bail, Report};
 use std::sync::RwLock;
 
 #[derive(Debug)]
