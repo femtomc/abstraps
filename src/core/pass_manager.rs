@@ -1,10 +1,3 @@
-//! This provides a pass manager framework, which includes
-//! analysis passes (which cannot mutate `Operation` instances),
-//! operation passes (which can mutate `Operation` instances,
-//! and can also request analysis passes from the `AnalysisManager`),
-//! and a `OperationPassManager` type which allows construction of nested
-//! passes on the IR.
-
 use crate::core::interfaces::*;
 use crate::core::ir::{Intrinsic, Operation, SupportsInterfaceTraits};
 use color_eyre::{eyre::bail, Report};
@@ -82,18 +75,22 @@ where
     fn prewalk(self, op: Operation) -> Result<Operation, Report>;
 }
 
-pub trait OperationPass: Send + Sync
-where
-    Self: std::fmt::Debug,
-{
+pub trait OperationPass: Send + Sync + std::fmt::Debug {
     fn target_intrinsic(&self) -> Option<Box<dyn Intrinsic>> {
         None
     }
 
     fn reset(&self) -> Box<dyn OperationPass>;
 
+    /// Check if the `OperationPass` can be applied to this `Operation`.
     fn check(&self, op: &RwLock<Operation>) -> Result<(), Report>;
 
+    /// Apply the `OperationPass` to the operation. The semantics
+    /// of this function can generally include mutating the operation.
+    ///
+    /// Access to the operation is provided by a `RwLock<Operation>`,
+    /// the `OperationPass` can also access the `AnalysisManager`
+    /// through another `RwLock`.
     fn apply(
         &self,
         op: &RwLock<Operation>,
@@ -146,7 +143,7 @@ where
         let analysis_lock = RwLock::new(analysis_manager);
         let op_lock = RwLock::new(op);
         for pass in self.get_passes().iter() {
-            pass.apply(&op_lock, &analysis_lock);
+            pass.apply(&op_lock, &analysis_lock)?;
         }
         Ok(op_lock.into_inner().unwrap())
     }

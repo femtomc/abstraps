@@ -1,9 +1,3 @@
-//! The builder design in this module
-//! supports code generation to the `abstraps` IR.
-//!
-//! The interfaces provided below allow customized code generation
-//! for user-defined intrinsics and lowering.
-
 use crate::core::diagnostics::LocationInfo;
 use crate::core::ir::{Attribute, BasicBlock, Intrinsic, Operation, SupportsInterfaceTraits, Var};
 use crate::core::region::Region;
