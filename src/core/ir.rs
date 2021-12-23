@@ -15,7 +15,7 @@ use crate::core::interfaces::*;
 use crate::core::region::Region;
 use alloc::string::String;
 use alloc::vec::Vec;
-
+use color_eyre::Report;
 use downcast_rs::{impl_downcast, Downcast};
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
@@ -39,9 +39,64 @@ pub trait Intrinsic: Downcast + Object + ObjectClone {
     fn get_unique_id(&self) -> String {
         format!("{}.{}", self.get_namespace(), self.get_name())
     }
+    fn verify(
+        &self,
+        boxed: &Box<dyn Intrinsic>,
+        op: &dyn SupportsInterfaceTraits,
+    ) -> Result<(), Report>;
 }
 impl_downcast!(Intrinsic);
 mopo!(dyn Intrinsic);
+
+#[macro_export]
+macro_rules! intrinsic {
+    ($struct:ident, $namespace:literal, $name:literal) => {
+        #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
+        pub struct $struct;
+
+        impl Intrinsic for $struct {
+            fn get_namespace(&self) -> &str {
+                return $namespace;
+            }
+
+            fn get_name(&self) -> &str {
+                return $name;
+            }
+
+            fn verify(&self, _boxed: &Box<dyn Intrinsic>, _op: &dyn SupportsInterfaceTraits) -> Result<(), Report> {
+                Ok(())
+            }
+        }
+
+        interfaces!($struct: dyn ObjectClone, dyn Intrinsic);
+    };
+
+    ($struct:ident, $namespace:literal, $name:literal, $($trait:ident),+) => {
+        #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
+        pub struct $struct;
+
+        $(impl $trait for $struct {})*
+
+        impl Intrinsic for $struct {
+            fn get_namespace(&self) -> &str {
+                return $namespace;
+            }
+
+            fn get_name(&self) -> &str {
+                return $name;
+            }
+
+            fn verify(&self, boxed: &Box<dyn Intrinsic>, op: &dyn SupportsInterfaceTraits) -> Result<(), Report> {
+                $(boxed.query_ref::<dyn $trait>().unwrap().verify(op)?;)*
+                Ok(())
+            }
+        }
+
+        interfaces!($struct: dyn ObjectClone,
+            dyn Intrinsic,
+            $(dyn $trait)*);
+    };
+}
 
 pub trait Attribute: Object + std::fmt::Display {}
 mopo!(dyn Attribute);

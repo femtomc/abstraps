@@ -61,9 +61,19 @@ impl Graph {
         m.sort_by(|a, b| a.1.cmp(b.1));
         m.iter().map(|v| v.0).collect::<Vec<_>>()
     }
-}
 
-impl Graph {
+    pub fn get_blocks(&self) -> &[BasicBlock] {
+        &self.blocks
+    }
+
+    pub fn get_block(&self) -> &BasicBlock {
+        &self.blocks[0]
+    }
+
+    pub fn get_block_mut(&mut self) -> &mut BasicBlock {
+        &mut self.blocks[0]
+    }
+
     pub fn push_op(&mut self, v: Operation) -> Var {
         let arg = Var::new(self.defs.len());
         let len = self.blocks[0].get_ops().len();
@@ -71,10 +81,6 @@ impl Graph {
         bb.get_ops_mut().push(v);
         self.defs.push((0_i32, len as i32));
         arg
-    }
-
-    pub fn get_block(&mut self) -> &mut BasicBlock {
-        &mut self.blocks[0]
     }
 }
 
@@ -113,7 +119,11 @@ impl SSACFG {
         arg
     }
 
-    pub fn get_block(&mut self, ind: usize) -> &mut BasicBlock {
+    pub fn get_block(&self, ind: usize) -> &BasicBlock {
+        &self.blocks[ind]
+    }
+
+    pub fn get_block_mut(&mut self, ind: usize) -> &mut BasicBlock {
         &mut self.blocks[ind]
     }
 
@@ -260,10 +270,24 @@ impl Region {
         }
     }
 
-    pub fn get_block(&mut self, ind: usize) -> &mut BasicBlock {
+    pub fn get_blocks(&self) -> &[BasicBlock] {
+        match self {
+            Region::Directed(ssacfg) => ssacfg.get_blocks(),
+            Region::Undirected(graph) => graph.get_blocks(),
+        }
+    }
+
+    pub fn get_block(&self, ind: usize) -> &BasicBlock {
         match self {
             Region::Directed(ssacfg) => ssacfg.get_block(ind),
             Region::Undirected(graph) => graph.get_block(),
+        }
+    }
+
+    pub fn get_block_mut(&mut self, ind: usize) -> &mut BasicBlock {
+        match self {
+            Region::Directed(ssacfg) => ssacfg.get_block_mut(ind),
+            Region::Undirected(graph) => graph.get_block_mut(),
         }
     }
 }

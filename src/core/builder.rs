@@ -96,7 +96,7 @@ impl OperationBuilder {
 
     pub fn push_arg(&mut self) -> Result<Var, Report> {
         let blk = self.cursor.1 - 1;
-        let r = self.get_region();
+        let r = self.get_region_mut();
         match r.push_arg(blk) {
             Ok(v) => {
                 if blk == 0 {
@@ -125,7 +125,12 @@ impl OperationBuilder {
         self.cursor = (self.cursor.0 + 1, self.cursor.1)
     }
 
-    pub fn get_region(&mut self) -> &mut Region {
+    pub fn get_region(&self) -> &Region {
+        let reg = self.cursor.0 - 1;
+        &self.regions[reg]
+    }
+
+    pub fn get_region_mut(&mut self) -> &mut Region {
         let reg = self.cursor.0 - 1;
         &mut self.regions[reg]
     }
@@ -135,16 +140,23 @@ impl OperationBuilder {
     }
 
     pub fn push_block(&mut self, b: BasicBlock) -> Result<(), Report> {
-        let r = self.get_region();
+        let r = self.get_region_mut();
         r.push_block(b)?;
         self.cursor = (self.cursor.0, self.cursor.1 + 1);
         Ok(())
     }
 
-    pub fn get_block(&mut self) -> &mut BasicBlock {
+    pub fn get_block(&self) -> &BasicBlock {
         let cursor = self.cursor;
         let blk = cursor.1 - 1;
         let b = self.get_region().get_block(blk);
+        b
+    }
+
+    pub fn get_block_mut(&mut self) -> &mut BasicBlock {
+        let cursor = self.cursor;
+        let blk = cursor.1 - 1;
+        let b = self.get_region_mut().get_block_mut(blk);
         b
     }
 
@@ -156,7 +168,7 @@ impl OperationBuilder {
     pub fn push_op(&mut self, v: Operation) -> Var {
         let ret = {
             let blk = self.get_cursor().1 - 1;
-            let r = self.get_region();
+            let r = self.get_region_mut();
             r.push_op(blk, v)
         };
         ret
@@ -165,13 +177,16 @@ impl OperationBuilder {
 
 impl OperationBuilder {
     pub fn finish(self) -> Result<Operation, Report> {
-        Ok(Operation::new(
+        let op = Operation::new(
             self.location,
             self.intrinsic,
             self.operands,
             self.attributes,
             self.regions,
             self.successors,
-        ))
+        );
+        let intr = op.get_intrinsic();
+        intr.verify(intr, &op)?;
+        Ok(op)
     }
 }

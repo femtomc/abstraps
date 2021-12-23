@@ -1,9 +1,8 @@
 use abstraps::*;
-use std::fmt::Debug;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
 struct Foo3;
-interfaces!(Foo3: dyn ObjectClone, dyn Debug, dyn Bar2<Foo3>);
+interfaces!(Foo3: dyn ObjectClone, dyn std::fmt::Debug, dyn Bar2<Foo3>);
 
 trait Bar2<T> {
     fn do_something(&self) -> Option<T>;

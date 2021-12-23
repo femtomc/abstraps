@@ -1,19 +1,7 @@
 use abstraps::dialects::builtin::*;
 use abstraps::*;
-use color_eyre::Report;
 
-#[derive(Clone, Debug)]
-pub struct Add;
-
-impl Intrinsic for Add {
-    fn get_namespace(&self) -> &str {
-        "arith"
-    }
-
-    fn get_name(&self) -> &str {
-        "add"
-    }
-}
+intrinsic!(Add, "arith", "add");
 
 impl Add {
     pub fn get_builder(&self, operands: Vec<Var>, loc: LocationInfo) -> OperationBuilder {
@@ -23,8 +11,6 @@ impl Add {
         b
     }
 }
-
-interfaces!(Add: dyn ObjectClone, dyn Intrinsic);
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 enum ArithLattice {

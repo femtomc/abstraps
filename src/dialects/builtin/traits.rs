@@ -1,5 +1,4 @@
 use crate::core::{AttributeValue, SupportsInterfaceTraits, Var};
-
 use color_eyre::{eyre::bail, Report};
 use std::collections::HashMap;
 
@@ -57,5 +56,26 @@ pub trait ProvidesSymbol {
         let obj = op.get_attributes_mut().get_mut("symbol").unwrap();
         let attr_val = obj.query_mut::<dyn AttributeValue<String>>().unwrap();
         attr_val.get_value_mut()
+    }
+}
+
+pub trait Terminator {}
+pub trait RequiresTerminators {
+    fn verify(&self, op: &dyn SupportsInterfaceTraits) -> Result<(), Report> {
+        for r in op.get_regions().iter() {
+            for (ind, blk) in r.get_blocks().iter().enumerate() {
+                match blk.get_ops().last() {
+                    None => bail!(format!("Block {} is empty.", ind)),
+                    Some(v) => match v.get_intrinsic().query_ref::<dyn Terminator>() {
+                        None => bail!(format!(
+                            "The intrinsic {} is not `Terminator` traited.",
+                            v.get_intrinsic()
+                        )),
+                        Some(_) => (),
+                    },
+                };
+            }
+        }
+        Ok(())
     }
 }

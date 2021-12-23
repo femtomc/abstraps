@@ -2,18 +2,7 @@ use crate::dialects::builtin::*;
 use crate::*;
 
 // Call intrinsic.
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
-pub struct Call;
-
-impl Intrinsic for Call {
-    fn get_namespace(&self) -> &str {
-        "std"
-    }
-
-    fn get_name(&self) -> &str {
-        "call"
-    }
-}
+intrinsic!(Call, "std", "call");
 
 impl Call {
     pub fn get_builder(
@@ -31,21 +20,8 @@ impl Call {
     }
 }
 
-interfaces!(Call: dyn ObjectClone, dyn Intrinsic);
-
 // Return intrinsic.
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
-pub struct Return;
-
-impl Intrinsic for Return {
-    fn get_namespace(&self) -> &str {
-        "std"
-    }
-
-    fn get_name(&self) -> &str {
-        "return"
-    }
-}
+intrinsic!(Return, "std", "return");
 
 impl Return {
     pub fn get_builder(&self, operands: Vec<Var>, loc: LocationInfo) -> OperationBuilder {
@@ -55,5 +31,3 @@ impl Return {
         b
     }
 }
-
-interfaces!(Return: dyn ObjectClone, dyn Intrinsic);
