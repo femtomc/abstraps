@@ -1,9 +1,3 @@
-/*
-
-   This file is part of `abstraps`. License is MIT.
-
-*/
-
 #![allow(non_upper_case_globals)]
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
@@ -136,7 +130,7 @@ mod mlir_tests {
 
 */
 
-use crate::core::ir::{ExtIR, Instruction, Var};
+use crate::core::ir::Var;
 use std::collections::HashMap;
 use std::ffi::CString;
 use std::sync::{Arc, RwLock};
@@ -438,99 +432,99 @@ pub trait Convert {
 // `Codegen` is implemented for intrinsics, and requires
 // specification of the attribute set `A` and the lattice
 // type set `T`.
-pub trait Codegen<A, T>
-where
-    Self: Sized,
-    T: Convert + Sized,
-{
-    fn codegen_instr<G>(
-        b: &mut MLIRBuilder<G>,
-        intr: &Instruction<Self, A>,
-        rettype: &T,
-    ) -> Result<Option<MlirValue>, BuilderError>;
-}
-
-impl<G> MLIRBuilder<G> {
-    pub fn codegen_function<T, K, Ty>(
-        &mut self,
-        name: &str,
-        ir: &ExtIR<T, K>,
-        argtypes: &Vec<Ty>,
-        analysis: &Vec<Ty>,
-        rettype: &Ty,
-    ) -> Result<MlirOperation, BuilderError>
-    where
-        Ty: Convert,
-        T: Codegen<K, Ty>,
-    {
-        let loc = self.get_unknown_loc();
-        let mut state = self.create_state("llvm.func", loc);
-        let region = self.create_region();
-        let args = argtypes
-            .iter()
-            .map(|x| Convert::convert(self, x))
-            .collect::<Result<Vec<_>, _>>()?;
-        for blk in 0..ir.blocks.len() {
-            match blk {
-                0 => {
-                    let entry = self.create_blk(args.clone());
-                    for (ind, v) in ir.blocks[0].args.iter().enumerate() {
-                        let blkind = ind as isize;
-                        let arg = self.get_blk_arg(entry, blkind).unwrap();
-                        self.local_map.insert(v.clone(), arg);
-                    }
-                    for (v, instr) in ir.block_iter(0) {
-                        let res = Codegen::codegen_instr(self, instr, rettype)?;
-                        match res {
-                            None => (),
-                            Some(r) => {
-                                self.local_map.insert(v.clone(), r);
-                                ()
-                            }
-                        };
-                    }
-                    self.add_blk(region, entry);
-                }
-                _ => {
-                    let args = ir.blocks[blk]
-                        .args
-                        .iter()
-                        .map(|v| {
-                            let t = match analysis.get(v.id) {
-                                None => Err(BuilderError::FailedToLookupTypeForVar),
-                                Some(t) => Ok(t),
-                            }?;
-                            Convert::convert(self, t)
-                        })
-                        .collect::<Result<Vec<_>, _>>()?;
-                    let mlirblk = self.create_blk(args);
-                    for (ind, v) in ir.blocks[0].args.iter().enumerate() {
-                        let blkind = ind as isize;
-                        let arg = self.get_blk_arg(mlirblk, blkind).unwrap();
-                        self.local_map.insert(v.clone(), arg);
-                    }
-                    for (v, instr) in ir.block_iter(0) {
-                        let res = Codegen::codegen_instr(self, instr, rettype)?;
-                        match res {
-                            None => (),
-                            Some(r) => {
-                                self.local_map.insert(v.clone(), r);
-                                ()
-                            }
-                        };
-                    }
-                    self.add_blk(region, mlirblk);
-                }
-            }
-        }
-        let rettype = Convert::convert(self, rettype)?;
-        let functype = self.get_func_type(rettype, args, false);
-        let funcattr = self.get_type_attr(functype);
-        let funcnattr = self.get_nattr("type", funcattr);
-        let strattr = self.get_str_attr(name);
-        let nstrattr = self.get_nattr("sym_name", strattr);
-        self.add_nattrs(&mut state, vec![nstrattr, funcnattr]);
-        self.add_region(&mut state, &region);
-        Ok(self.finish_no_verify(&mut state))
-    }
-}
+//pub trait Codegen<A, T>
+//where
+//    Self: Sized,
+//    T: Convert + Sized,
+//{
+//    fn codegen_instr<G>(
+//        b: &mut MLIRBuilder<G>,
+//        intr: &Instruction<Self, A>,
+//        rettype: &T,
+//    ) -> Result<Option<MlirValue>, BuilderError>;
+//}
+//
+//impl<G> MLIRBuilder<G> {
+//    pub fn codegen_function<T, K, Ty>(
+//        &mut self,
+//        name: &str,
+//        ir: &ExtIR<T, K>,
+//        argtypes: &Vec<Ty>,
+//        analysis: &Vec<Ty>,
+//        rettype: &Ty,
+//    ) -> Result<MlirOperation, BuilderError>
+//    where
+//        Ty: Convert,
+//        T: Codegen<K, Ty>,
+//    {
+//        let loc = self.get_unknown_loc();
+//        let mut state = self.create_state("llvm.func", loc);
+//        let region = self.create_region();
+//        let args = argtypes
+//            .iter()
+//            .map(|x| Convert::convert(self, x))
+//            .collect::<Result<Vec<_>, _>>()?;
+//        for blk in 0..ir.blocks.len() {
+//            match blk {
+//                0 => {
+//                    let entry = self.create_blk(args.clone());
+//                    for (ind, v) in ir.blocks[0].args.iter().enumerate() {
+//                        let blkind = ind as isize;
+//                        let arg = self.get_blk_arg(entry, blkind).unwrap();
+//                        self.local_map.insert(v.clone(), arg);
+//                    }
+//                    for (v, instr) in ir.block_iter(0) {
+//                        let res = Codegen::codegen_instr(self, instr, rettype)?;
+//                        match res {
+//                            None => (),
+//                            Some(r) => {
+//                                self.local_map.insert(v.clone(), r);
+//                                ()
+//                            }
+//                        };
+//                    }
+//                    self.add_blk(region, entry);
+//                }
+//                _ => {
+//                    let args = ir.blocks[blk]
+//                        .args
+//                        .iter()
+//                        .map(|v| {
+//                            let t = match analysis.get(v.id) {
+//                                None => Err(BuilderError::FailedToLookupTypeForVar),
+//                                Some(t) => Ok(t),
+//                            }?;
+//                            Convert::convert(self, t)
+//                        })
+//                        .collect::<Result<Vec<_>, _>>()?;
+//                    let mlirblk = self.create_blk(args);
+//                    for (ind, v) in ir.blocks[0].args.iter().enumerate() {
+//                        let blkind = ind as isize;
+//                        let arg = self.get_blk_arg(mlirblk, blkind).unwrap();
+//                        self.local_map.insert(v.clone(), arg);
+//                    }
+//                    for (v, instr) in ir.block_iter(0) {
+//                        let res = Codegen::codegen_instr(self, instr, rettype)?;
+//                        match res {
+//                            None => (),
+//                            Some(r) => {
+//                                self.local_map.insert(v.clone(), r);
+//                                ()
+//                            }
+//                        };
+//                    }
+//                    self.add_blk(region, mlirblk);
+//                }
+//            }
+//        }
+//        let rettype = Convert::convert(self, rettype)?;
+//        let functype = self.get_func_type(rettype, args, false);
+//        let funcattr = self.get_type_attr(functype);
+//        let funcnattr = self.get_nattr("type", funcattr);
+//        let strattr = self.get_str_attr(name);
+//        let nstrattr = self.get_nattr("sym_name", strattr);
+//        self.add_nattrs(&mut state, vec![nstrattr, funcnattr]);
+//        self.add_region(&mut state, &region);
+//        Ok(self.finish_no_verify(&mut state))
+//    }
+//}
