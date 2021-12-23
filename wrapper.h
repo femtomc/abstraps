@@ -1,9 +1,3 @@
-/*
-
-   This file is part of `abstraps`. License is MIT.
-
-*/
-
 #include <mlir-c/BuiltinAttributes.h>
 #include <mlir-c/BuiltinTypes.h>
 #include <mlir-c/Conversion.h>

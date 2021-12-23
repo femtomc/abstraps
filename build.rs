@@ -1,9 +1,3 @@
-/*
-
-   This file is part of `abstraps`. License is MIT.
-
-*/
-
 #![allow(dead_code)]
 
 extern crate bindgen;

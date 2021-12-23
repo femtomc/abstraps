@@ -67,6 +67,7 @@ macro_rules! mopo {
                     None
                 }
             }
+
             pub fn query_mut<U: ::std::any::Any + ?Sized>(&mut self) -> Option<&mut U> {
                 if let Some(vtable) = self.query_vtable(::std::any::TypeId::of::<U>()) {
                     unsafe {
@@ -81,6 +82,7 @@ macro_rules! mopo {
                     None
                 }
             }
+
             pub fn query<U: ::std::any::Any + ?Sized>(
                 self: Box<Self>,
             ) -> ::std::result::Result<Box<U>, Box<Self>> {
@@ -99,6 +101,7 @@ macro_rules! mopo {
                     Err(self)
                 }
             }
+
             pub fn query_arc<U: ::std::any::Any + ?Sized>(
                 self_: ::std::sync::Arc<Self>,
             ) -> ::std::result::Result<::std::sync::Arc<U>, ::std::sync::Arc<Self>> {
@@ -118,6 +121,7 @@ macro_rules! mopo {
                     Err(self_)
                 }
             }
+
             pub fn query_rc<U: ::std::any::Any + ?Sized>(
                 self_: ::std::rc::Rc<Self>,
             ) -> ::std::result::Result<::std::rc::Rc<U>, ::std::rc::Rc<Self>> {

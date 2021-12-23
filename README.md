@@ -10,13 +10,11 @@ This project started off as an experiment in compiler design. Specifically, the 
 
 It turns out that there are quite a few of languages (e.g. Crystal, Nim, Julia) experimenting with abstract interpretation as part of their type systems. In the long term, the goal of the project might be to provide a stable substrate to experiment on compiler design _cons_ abstract interpreters on an IR framework which supports MLIR-like concepts. 
 
-Of course, the original author would have liked to just do this in MLIR proper -- but given time constraints and engineering ability (in C++), this project is implemented in Rust. In fact, for those interested in MLIR -- you may find "another implementation viewpoint" useful on the design concepts -- the repository has been kept as clear as possible, or otherwise documented with respect to non-trivial implementation decisions and their motivation from MLIR.
+The original author would have liked to just do this in MLIR proper -- but given time constraints and engineering ability (or lack thereof in C++), this project is implemented in Rust. In fact, for those interested in MLIR -- you may find "another implementation viewpoint" useful on the design concepts -- the repository has been kept as clean as possible, or otherwise documented with respect to non-trivial implementation decisions and their motivation from MLIR.
 
 <div align="center">
 <b><i><a href="https://mitpress.mit.edu/books/little-schemer-fourth-edition">Bon appetit!</a></i></b>
 </div>
-
----
 
 #### Claims
 
