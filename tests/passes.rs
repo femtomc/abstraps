@@ -1,8 +1,8 @@
+use abstraps::dialects::base::*;
 use abstraps::dialects::builtin::*;
-use abstraps::dialects::std::*;
 use abstraps::*;
 
-intrinsic!(Add, "arith", "add");
+intrinsic!(Add: ["arith", "add"], [], extern: []);
 
 impl Add {
     pub fn get_builder(&self, operands: Vec<Var>, loc: LocationInfo) -> OperationBuilder {

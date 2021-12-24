@@ -2,7 +2,7 @@ use crate::dialects::builtin::*;
 use crate::*;
 
 // Call intrinsic.
-intrinsic!(Call, "std", "call");
+intrinsic!(Call: ["base", "call"], [], extern: []);
 
 impl Call {
     pub fn get_builder(
@@ -21,7 +21,7 @@ impl Call {
 }
 
 // Return intrinsic.
-intrinsic!(Return, "std", "return", Terminator);
+intrinsic!(Return: ["base", "return"], [Terminator], extern: []);
 
 impl Return {
     pub fn get_builder(&self, operands: Vec<Var>, loc: LocationInfo) -> OperationBuilder {

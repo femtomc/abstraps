@@ -1,8 +1,20 @@
+use abstraps::dialects::base::*;
 use abstraps::dialects::builtin::*;
-use abstraps::dialects::std::*;
 use abstraps::*;
 
-intrinsic!(Add, "arith", "add");
+intrinsic!(Add: ["arith", "add"], [], extern: [NonVariadic]);
+
+impl NonVariadic for Add {
+    fn verify(&self, op: &dyn SupportsInterfaceTraits) -> Result<(), Report> {
+        if op.get_operands().len() != 2 {
+            bail!(format!(
+                "{} is non-variadic, and supports a fixed number (2) of operands.",
+                op.get_intrinsic(),
+            ));
+        }
+        Ok(())
+    }
+}
 
 impl Add {
     pub fn get_builder(&self, operands: Vec<Var>, loc: LocationInfo) -> OperationBuilder {

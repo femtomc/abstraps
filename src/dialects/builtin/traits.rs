@@ -3,18 +3,11 @@ use crate::{bail, Report};
 use std::collections::HashMap;
 use yansi::Paint;
 
+// This is an example of an "extern" interface which requires
+// a user-defined method (here: `verify`) when defining
+// their intrinsics.
 pub trait NonVariadic {
-    const N: usize;
-    fn verify(&self, op: &dyn SupportsInterfaceTraits) -> Result<(), Report> {
-        if op.get_operands().len() != Self::N {
-            bail!(format!(
-                "{} is non-variadic, and supports a fixed number ({}) of operands.",
-                op.get_intrinsic(),
-                Self::N
-            ));
-        }
-        Ok(())
-    }
+    fn verify(&self, op: &dyn SupportsInterfaceTraits) -> Result<(), Report>;
 }
 
 pub trait ProvidesSymbolTable {

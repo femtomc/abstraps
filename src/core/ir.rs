@@ -38,28 +38,10 @@ mopo!(dyn Intrinsic);
 
 #[macro_export]
 macro_rules! intrinsic {
-    ($struct:ident, $namespace:literal, $name:literal) => {
-        #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
-        pub struct $struct;
-
-        impl Intrinsic for $struct {
-            fn get_namespace(&self) -> &str {
-                return $namespace;
-            }
-
-            fn get_name(&self) -> &str {
-                return $name;
-            }
-
-            fn verify(&self, _boxed: &Box<dyn Intrinsic>, _op: &dyn SupportsInterfaceTraits) -> Result<(), Report> {
-                Ok(())
-            }
-        }
-
-        interfaces!($struct: dyn ObjectClone, dyn Intrinsic);
-    };
-
-    ($struct:ident, $namespace:literal, $name:literal, $($trait:ident),+) => {
+    ($struct:ident:
+     [$namespace:literal, $name:literal],
+     [$($trait:ident),*],
+     extern: [$($extr:ident),*]) => {
         #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
         pub struct $struct;
 
@@ -76,13 +58,15 @@ macro_rules! intrinsic {
 
             fn verify(&self, boxed: &Box<dyn Intrinsic>, op: &dyn SupportsInterfaceTraits) -> Result<(), Report> {
                 $(boxed.query_ref::<dyn $trait>().unwrap().verify(op)?;)*
+                $(boxed.query_ref::<dyn $extr>().unwrap().verify(op)?;)*
                 Ok(())
             }
         }
 
         interfaces!($struct: dyn ObjectClone,
-            dyn Intrinsic,
-            $(dyn $trait),*);
+            dyn Intrinsic
+            $(,dyn $trait)*
+            $(,dyn $extr)*);
     };
 }
 
@@ -109,7 +93,7 @@ pub struct Operation {
     operands: Vec<Var>,
     attributes: HashMap<String, Box<dyn Attribute>>,
     regions: Vec<Region>,
-    successors: Vec<BasicBlock>,
+    successors: Vec<usize>,
 }
 
 impl Hash for Operation {
@@ -151,7 +135,7 @@ impl Operation {
         operands: Vec<Var>,
         attributes: HashMap<String, Box<dyn Attribute>>,
         regions: Vec<Region>,
-        successors: Vec<BasicBlock>,
+        successors: Vec<usize>,
     ) -> Operation {
         Operation {
             location,

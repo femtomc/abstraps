@@ -21,7 +21,7 @@ pub struct OperationBuilder {
     operands: Vec<Var>,
     attributes: HashMap<String, Box<dyn Attribute>>,
     regions: Vec<Region>,
-    successors: Vec<BasicBlock>,
+    successors: Vec<usize>,
 }
 
 impl SupportsInterfaceTraits for OperationBuilder {
@@ -82,6 +82,10 @@ impl OperationBuilder {
 
     pub fn get_operands(&self) -> Vec<Var> {
         self.operands.to_vec()
+    }
+
+    pub fn set_successors(&mut self, blks: Vec<usize>) {
+        self.successors = blks;
     }
 
     pub fn set_cursor(&mut self, reg: usize, blk: usize) {

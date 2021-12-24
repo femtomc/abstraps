@@ -1,8 +1,27 @@
+use abstraps::dialects::base::*;
 use abstraps::dialects::builtin::*;
-use abstraps::dialects::std::*;
 use abstraps::*;
 
-intrinsic!(Add, "arith", "add");
+// Declare `NonVariadic` as an extern interface,
+// and provide the implementation.
+//
+// The `intrinsic!` macro otherwise just assumes that interface
+// traits specified in the list before (extern: [...])
+// have unital implementations.
+intrinsic!(Add: ["arith", "add"], [], extern: [NonVariadic]);
+
+impl NonVariadic for Add {
+    fn verify(&self, op: &dyn SupportsInterfaceTraits) -> Result<(), Report> {
+        if op.get_operands().len() != 2 {
+            bail!(format!(
+                "{} is non-variadic, and supports a fixed number (2) of operands.\n=> {}",
+                op.get_intrinsic(),
+                op
+            ));
+        }
+        Ok(())
+    }
+}
 
 impl Add {
     pub fn get_builder(&self, operands: Vec<Var>, loc: LocationInfo) -> OperationBuilder {
@@ -15,6 +34,7 @@ impl Add {
 
 #[test]
 fn extensions_0() -> Result<(), Report> {
+    diagnostics_setup()?;
     let mut module = Module.get_builder("foo", LocationInfo::Unknown);
     let mut func = Func.get_builder("new_func", LocationInfo::Unknown);
     let operands = vec![func.push_arg()?, func.push_arg()?];
