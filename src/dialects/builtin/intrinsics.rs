@@ -1,4 +1,4 @@
-use crate::dialects::builtin::attributes::{Symbol, SymbolTable};
+use crate::dialects::builtin::attributes::{SymbolAttr, SymbolTableAttr};
 use crate::dialects::builtin::traits::{ProvidesSymbol, ProvidesSymbolTable, RequiresTerminators};
 use crate::*;
 
@@ -13,9 +13,9 @@ impl Module {
         b.push_region(r);
         let blk = BasicBlock::default();
         b.push_block(blk);
-        let st = SymbolTable::new();
+        let st = SymbolTableAttr::new();
         b.insert_attr("symbols", Box::new(st));
-        let sym_name = Symbol::new(name);
+        let sym_name = SymbolAttr::new(name);
         b.insert_attr("symbol", Box::new(sym_name));
         b
     }
@@ -32,7 +32,7 @@ impl Func {
         b.push_region(r);
         let blk = BasicBlock::default();
         b.push_block(blk);
-        let attr = Symbol::new(name);
+        let attr = SymbolAttr::new(name);
         b.insert_attr("symbol", Box::new(attr));
         b
     }

@@ -1,11 +1,21 @@
+//! This dialect supports primitive operations, traits, attributes,
+//! and passes which are fundamental to usage of the framework.
+//!
+//! The implementation follows the [MLIR
+//! implementation](https://mlir.llvm.org/docs/Dialects/Builtin/)
+//! as closely as possible.
+
 mod attributes;
 mod intrinsics;
 mod passes;
 mod traits;
 
 pub use self::{
-    attributes::{Symbol, SymbolTable},
+    attributes::{ConstantAttr, SymbolAttr, SymbolTableAttr},
     intrinsics::{Func, Module},
     passes::PopulateSymbolTablePass,
-    traits::{NonVariadic, ProvidesSymbol, ProvidesSymbolTable, RequiresTerminators, Terminator},
+    traits::{
+        ConstantLike, NonVariadic, ProvidesSymbol, ProvidesSymbolTable, RequiresTerminators,
+        Terminator,
+    },
 };

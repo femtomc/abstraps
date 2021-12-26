@@ -41,7 +41,9 @@ fn extensions_0() -> Result<(), Report> {
     let add1 = Add.get_builder(operands, LocationInfo::Unknown);
     let ret = func.push(add1)?;
     let add2 = Add.get_builder(vec![ret, ret], LocationInfo::Unknown);
-    let v = func.push(add2)?;
+    func.push(add2)?;
+    let cons = Constant.get_builder(ConstantAttr::Int(5, 64), LocationInfo::Unknown);
+    let v = func.push(cons)?;
     func.push(Return.get_builder(vec![v], LocationInfo::Unknown))?;
     module.push(func)?;
     let end = module.finish();

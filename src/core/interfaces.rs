@@ -226,9 +226,12 @@ macro_rules! mopo {
     };
 }
 
-/// This trait is the primary function of the library. `Object` trait objects
+/// `Object` trait objects
 /// can be freely queried for any other trait, allowing conversion between
 /// trait objects.
+///
+/// This trait is the core provider of the interface functionality. Consumers of the library should
+/// not need to deeply understand `Object`.
 pub unsafe trait Object: Any {
     /// This is implemented by the `interfaces!` macro, and should never be
     /// manually implemented.
@@ -253,6 +256,7 @@ mopo!(dyn Object);
 /// This is an object-safe version of `Clone`, which is automatically
 /// implemented for all `Clone + Object` types. This is a support trait used to
 /// allow `Object` trait objects to be clonable.
+#[doc(hidden)]
 pub trait ObjectClone {
     fn obj_clone(&self) -> Box<dyn Object>;
 }
@@ -265,6 +269,7 @@ impl<T: Clone + Object> ObjectClone for T {
 /// This is an object-safe version of `PartialEq`, which is automatically
 /// implemented for all `PartialEq + Object` types. This is a support trait used to
 /// allow `Object` trait objects to be comparable in this way.
+#[doc(hidden)]
 pub trait ObjectPartialEq {
     fn obj_eq(&self, other: &dyn Object) -> bool;
 }
@@ -281,12 +286,14 @@ impl<T: PartialEq + Object> ObjectPartialEq for T {
 /// This is an object-safe version of `Eq`, which is automatically
 /// implemented for all `Eq + Object` types. This is a support trait used to
 /// allow `Object` trait objects to be comparable in this way.
+#[doc(hidden)]
 pub trait ObjectEq: ObjectPartialEq {}
 impl<T: Eq + Object> ObjectEq for T {}
 
 /// This is an object-safe version of `PartialOrd`, which is automatically
 /// implemented for all `PartialOrd + Object` types. This is a support trait used to
 /// allow `Object` trait objects to be comparable in this way.
+#[doc(hidden)]
 pub trait ObjectPartialOrd {
     fn obj_partial_cmp(&self, other: &dyn Object) -> Option<std::cmp::Ordering>;
 }
@@ -303,6 +310,7 @@ impl<T: PartialOrd + Object> ObjectPartialOrd for T {
 /// This is an object-safe version of `Ord`, which is automatically
 /// implemented for all `Ord + Object` types. This is a support trait used to
 /// allow `Object` trait objects to be comparable in this way.
+#[doc(hidden)]
 pub trait ObjectOrd {
     fn obj_cmp(&self, other: &dyn Object) -> Option<std::cmp::Ordering>;
 }
@@ -318,6 +326,7 @@ impl<T: Ord + Object> ObjectOrd for T {
 ///
 /// Note: `Object`s are not guaranteed to hash to the same value as their
 /// underlying type.
+#[doc(hidden)]
 pub trait ObjectHash {
     fn obj_hash(&self, state: &mut dyn Hasher);
 }

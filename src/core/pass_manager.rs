@@ -6,6 +6,12 @@ use std::collections::HashMap;
 use std::hash::Hash;
 use std::sync::RwLock;
 
+/// A trait object which supports caching of `AnalysisPass` instances
+/// by the `AnalysisManager`. Following [LLVM's pass
+/// manager](https://blog.llvm.org/posts/2021-03-26-the-new-pass-manager/), an [`AnalysisKey`] is a
+/// hashable piece of structured data _about_ the IR.
+///
+/// Provides a `to_pass` method which allows conversion/creation of an `AnalysisPass` (which further supports application to the IR).
 pub trait AnalysisKey: Downcast + Object {
     fn to_pass(&self, op: &Operation) -> Box<dyn AnalysisPass>;
 }

@@ -1,4 +1,5 @@
 use color_eyre::Report;
+use yansi::Paint;
 
 /// Diagnostics setup for tracing and error reporting.
 pub fn diagnostics_setup() -> Result<(), Report> {
@@ -13,6 +14,11 @@ pub fn diagnostics_setup() -> Result<(), Report> {
     tracing_subscriber::fmt::fmt().init();
 
     Ok(())
+}
+
+/// Globally disable terminal color printing.
+pub fn diagnostics_color_disable() {
+    Paint::disable();
 }
 
 /////

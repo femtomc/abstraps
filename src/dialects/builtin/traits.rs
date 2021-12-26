@@ -1,7 +1,30 @@
 use crate::core::{AttributeValue, SupportsInterfaceTraits, Var};
+use crate::dialects::builtin::*;
 use crate::{bail, Report};
 use std::collections::HashMap;
 use yansi::Paint;
+
+pub trait ConstantLike {
+    fn verify(&self, op: &dyn SupportsInterfaceTraits) -> Result<(), Report> {
+        if !op.get_attributes().contains_key("value") {
+            bail!(format!(
+                "{} must provide a {} key to satisfy the {} trait.",
+                op.get_intrinsic(),
+                Paint::magenta("value"),
+                Paint::magenta("ConstantLike").bold()
+            ))
+        }
+        let obj = op.get_attributes().get("value").unwrap();
+        match obj.query_ref::<dyn AttributeValue<ConstantAttr>>() {
+            None => bail!(format!("The attribute indexed by {} does not provide valid (can be coerced to) {}, which is required to be a valid {}.",
+                    Paint::magenta("value"),
+                    Paint::magenta("ConstantAttr").bold(),
+                    Paint::magenta("ConstantLike").bold(),
+            )),
+            Some(_v) => Ok(()),
+        }
+    }
+}
 
 // This is an example of an "extern" interface which requires
 // a user-defined method (here: `verify`) when defining
@@ -14,7 +37,7 @@ pub trait ProvidesSymbolTable {
     fn verify(&self, op: &dyn SupportsInterfaceTraits) -> Result<(), Report> {
         if !op.get_attributes().contains_key("symbols") {
             bail!(format!(
-                "{} must provide a {} key for {} attribute.",
+                "{} must provide a {} key to satisfy the {} trait.",
                 op.get_intrinsic(),
                 Paint::magenta("symbols"),
                 Paint::magenta("ProvidesSymbolTable").bold()

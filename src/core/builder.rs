@@ -7,12 +7,6 @@ use color_eyre::Report;
 use std::collections::HashMap;
 
 #[derive(Debug)]
-pub enum BuilderError {
-    BuilderCreationFailure,
-    Caseless,
-}
-
-#[derive(Debug)]
 pub struct OperationBuilder {
     latest: Vec<Var>,
     cursor: (usize, usize),

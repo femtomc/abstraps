@@ -83,14 +83,22 @@ impl LatticeJoin for ArithLattice {
 
 // Propagation rules.
 impl LatticeSemantics<ArithLattice> for Add {
-    fn propagate(&self, _v: Vec<&ArithLattice>) -> Result<ArithLattice, Report> {
+    fn propagate(
+        &self,
+        _interp: &mut Interpreter<ArithLattice>,
+        _op: &Operation,
+    ) -> Result<ArithLattice, Report> {
         Ok(ArithLattice::Int64)
     }
 }
 
 // Propagation rules.
 impl LatticeSemantics<ArithLattice> for Return {
-    fn propagate(&self, _v: Vec<&ArithLattice>) -> Result<ArithLattice, Report> {
+    fn propagate(
+        &self,
+        _interp: &mut Interpreter<ArithLattice>,
+        _op: &Operation,
+    ) -> Result<ArithLattice, Report> {
         Ok(ArithLattice::Int64)
     }
 }

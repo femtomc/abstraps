@@ -21,6 +21,13 @@ impl Var {
     }
 }
 
+/// The core means of IR extension - defines
+/// a computational unit with a particular (user-defined) semantics.
+/// Practically, an `Intrinsic` always occurs inside of an [`Operation`],
+/// (and specifies the interface identity of that [`Operation`] in the IR).
+///
+/// `Intrinsic` instances are placed inside of [`Operation`] instances
+/// (in the IR) and support customized (trait object) interfaces.
 pub trait Intrinsic: Downcast + Object + ObjectClone {
     fn get_namespace(&self) -> &str;
     fn get_name(&self) -> &str;
@@ -70,6 +77,7 @@ macro_rules! intrinsic {
     };
 }
 
+/// Constant metadata which can be attached to [`Operation`] instances.
 pub trait Attribute: Object + std::fmt::Display {}
 mopo!(dyn Attribute);
 
@@ -86,6 +94,14 @@ pub trait SupportsInterfaceTraits: std::fmt::Display {
     fn get_attributes_mut(&mut self) -> &mut HashMap<String, Box<dyn Attribute>>;
 }
 
+/// The main IR container - supports intrinsic and interface extension
+/// mechanisms using trait objects (and dynamism).
+///
+/// Owns:
+/// 1. A set of `operands` (parameters provided to the `Operation`).
+/// 2. An `attributes` map - representing attached constant metadata.
+/// 3. A set of `regions` - which handle scoping.
+/// 4. A set of `successors` - blocks which the operation can transfer control to.
 #[derive(Debug)]
 pub struct Operation {
     location: LocationInfo,
