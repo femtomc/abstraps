@@ -49,6 +49,7 @@ macro_rules! vtable_for {
     }};
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! mopo {
     ($name:ty) => {
@@ -338,6 +339,11 @@ impl<T: Hash + Object> ObjectHash for T {
     }
 }
 
+/// A macro which exposes static (virtual) lookup for trait objects
+/// which implement the `Object` interface.
+///
+/// This is internal, and provides core functionality for [`intrinsic!`].
+/// Users are not expected to interact with this functionality directly.
 #[macro_export(local_inner_macros)]
 macro_rules! interfaces {
     (@unbracket $(($($v:tt)*))*) => ($($($v)*)*);
@@ -544,6 +550,12 @@ pub fn find_in_registry<Type: 'static + ?Sized>(trait_id: TypeId) -> Option<VTab
     with_registry(|registry| registry.find::<Type>(trait_id))
 }
 
+/// Inserts an interface into the global crate-managed virtual table
+/// at runtime.
+///
+/// Provides core functionality for the abstract interpretation interface,
+/// and that's the only time the user will be expected to interact
+/// with this functionality.
 #[macro_export]
 macro_rules! dynamic_interfaces {
     ($($name:ty: $($iface:ty),+;)*) => (
@@ -688,13 +700,5 @@ mod tests {
 
         let dyn2: Option<&dyn Dynamic> = x.query_ref();
         assert!(dyn2.unwrap().test() == 42);
-    }
-
-    #[test]
-    fn test_primitives() {
-        Box::new(1);
-        Box::new(1f32);
-        Box::new("test".to_string());
-        Box::new(vec![1, 2, 3]);
     }
 }

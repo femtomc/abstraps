@@ -5,14 +5,14 @@ use yansi::Paint;
 
 #[derive(Debug)]
 pub enum ConstantAttr {
-    Int(i64, usize),
+    Integer(i64, usize),
     Float(f64, usize),
 }
 
 impl fmt::Display for ConstantAttr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            ConstantAttr::Int(v, _) => write!(f, "{{ {} }}", v),
+            ConstantAttr::Integer(v, _) => write!(f, "{{ {} }}", v),
             ConstantAttr::Float(v, _) => write!(f, "{{ {} }}", v),
         }
     }

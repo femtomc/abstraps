@@ -4,17 +4,13 @@
 [![crates.io](https://img.shields.io/crates/v/abstraps?style=for-the-badge)](https://crates.io/crates/abstraps)
 [![docs.rs](https://img.shields.io/docsrs/abstraps?style=for-the-badge)](https://docs.rs/abstraps/latest/abstraps/)
 
-> Fun with abstract interpreters.
+> Extensible compiler design with abstract interpreters.
 
 This project started off as an experiment in compiler design. Specifically, the author was motivated by studying [the Julia language and compiler](https://julialang.org/) inference system to understand language design with extensible abstract interpretation as a compiler (and potentially language!) feature.
 
 It turns out that there are quite a few of languages (e.g. Crystal, Nim, Julia) experimenting with abstract interpretation as part of their type systems. In the long term, the goal of the project might be to provide a stable substrate to experiment on compiler design _cons_ abstract interpreters on an IR framework which supports MLIR-like concepts. 
 
 The original author would have liked to just do this in MLIR proper -- but given time constraints and engineering ability (or lack thereof in C++), this project is implemented in Rust. In fact, for those interested in MLIR -- you may find "another implementation viewpoint" useful on the design concepts -- the repository has been kept as clean as possible, or otherwise documented with respect to non-trivial implementation decisions and their motivation from MLIR.
-
-<div align="center">
-<b><i><a href="https://mitpress.mit.edu/books/little-schemer-fourth-edition">Bon appetit!</a></i></b>
-</div>
 
 #### Claims
 

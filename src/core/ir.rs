@@ -8,14 +8,19 @@ use downcast_rs::{impl_downcast, Downcast};
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 
+/// A primitive SSA register.
+///
+/// Defines an index into operations at any nesting level.
 #[derive(Clone, Debug, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Var(usize);
 
 impl Var {
+    /// Create a new `Var` instance.
     pub fn new(id: usize) -> Var {
         Var(id)
     }
 
+    /// Get the internal `usize` index of a `Var` instance.
     pub fn get_id(&self) -> usize {
         self.0
     }
@@ -23,17 +28,30 @@ impl Var {
 
 /// The core means of IR extension - defines
 /// a computational unit with a particular (user-defined) semantics.
-/// Practically, an `Intrinsic` always occurs inside of an [`Operation`],
-/// (and specifies the interface identity of that [`Operation`] in the IR).
+/// Practically, an `Intrinsic` is always instanced inside of an [`Operation`] (or as part of
+/// [`crate::OperationBuilder`] IR construction)
+/// and specifies the interface identity of that [`Operation`] in the IR.
 ///
 /// `Intrinsic` instances are placed inside of [`Operation`] instances
 /// (in the IR) and support customized (trait object) interfaces.
+///
+/// Users of the crate should likely use the [`intrinsic!`] declarative
+/// macro to define new intrinsics.
 pub trait Intrinsic: Downcast + Object + ObjectClone {
     fn get_namespace(&self) -> &str;
     fn get_name(&self) -> &str;
     fn get_unique_id(&self) -> String {
         format!("{}.{}", self.get_namespace(), self.get_name())
     }
+
+    /// `verify` provides a mechanism by which an `Intrinsic`
+    /// can defer the definition of verification of ad hoc traits/interfaces (e.g. trait objects)
+    /// on [`Operation`]'s until the concrete implementor of `Intrinsic`
+    /// is defined.
+    ///
+    /// Mostly, the user will never be required to define this interface
+    /// directly, and should use the declarative [`intrinsic!`] macro
+    /// (which will handle defining this method).
     fn verify(
         &self,
         boxed: &Box<dyn Intrinsic>,
@@ -43,6 +61,22 @@ pub trait Intrinsic: Downcast + Object + ObjectClone {
 impl_downcast!(Intrinsic);
 mopo!(dyn Intrinsic);
 
+/// A declarative interface for defining new [`Intrinsic`] implementors.
+///
+/// The syntax looks like the following:
+/// ```ignore
+/// intrinsic!(Foo: ["namespace", "name"],
+///     [AnyTraitsWithAutoImplementations, ...],
+///     extern: [AnyTraitsWhichRequireUserProvidedImplementations, ...]
+///     )
+/// ```
+///
+/// The trait declaration functionality (and usage of traits for verifying ad hoc properties of an
+/// [`Operation`] containing an [`Intrinsic`]) follows the trait/interface
+/// specification in MLIR:
+/// <https://mlir.llvm.org/docs/Traits/>
+///
+/// Here, these are just Rust traits implemented on the [`Intrinsic`].
 #[macro_export]
 macro_rules! intrinsic {
     ($struct:ident:
@@ -86,6 +120,8 @@ pub trait AttributeValue<T> {
     fn get_value_mut(&mut self) -> &mut T;
 }
 
+/// A trait which provides non-mutating accessors for use in checking
+/// intrinsic/operation verification conditions.
 pub trait SupportsInterfaceTraits: std::fmt::Display {
     fn get_intrinsic(&self) -> &Box<dyn Intrinsic>;
     fn get_operands(&self) -> &[Var];
@@ -95,13 +131,15 @@ pub trait SupportsInterfaceTraits: std::fmt::Display {
 }
 
 /// The main IR container - supports intrinsic and interface extension
-/// mechanisms using trait objects (and dynamism).
+/// mechanisms using trait object dispatch.
 ///
 /// Owns:
 /// 1. A set of `operands` (parameters provided to the `Operation`).
 /// 2. An `attributes` map - representing attached constant metadata.
 /// 3. A set of `regions` - which handle scoping.
 /// 4. A set of `successors` - blocks which the operation can transfer control to.
+///
+/// [`Operation`] instances are almost always created through the builder interface.
 #[derive(Debug)]
 pub struct Operation {
     location: LocationInfo,

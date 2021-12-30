@@ -12,7 +12,6 @@ pub fn diagnostics_setup() -> Result<(), Report> {
         std::env::set_var("RUST_LOG", "info")
     }
     tracing_subscriber::fmt::fmt().init();
-
     Ok(())
 }
 

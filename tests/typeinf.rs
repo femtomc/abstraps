@@ -1,29 +1,7 @@
+use abstraps::dialects::arith::*;
 use abstraps::dialects::base::*;
 use abstraps::dialects::builtin::*;
 use abstraps::*;
-
-intrinsic!(Add: ["arith", "add"], [], extern: [NonVariadic]);
-
-impl NonVariadic for Add {
-    fn verify(&self, op: &dyn SupportsInterfaceTraits) -> Result<(), Report> {
-        if op.get_operands().len() != 2 {
-            bail!(format!(
-                "{} is non-variadic, and supports a fixed number (2) of operands.",
-                op.get_intrinsic(),
-            ));
-        }
-        Ok(())
-    }
-}
-
-impl Add {
-    pub fn get_builder(&self, operands: Vec<Var>, loc: LocationInfo) -> OperationBuilder {
-        let intr = Box::new(Add);
-        let mut b = OperationBuilder::default(intr, loc);
-        b.set_operands(operands);
-        b
-    }
-}
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 enum ArithLattice {
@@ -82,23 +60,15 @@ impl LatticeJoin for ArithLattice {
 }
 
 // Propagation rules.
-impl LatticeSemantics<ArithLattice> for Add {
-    fn propagate(
-        &self,
-        _interp: &mut Interpreter<ArithLattice>,
-        _op: &Operation,
-    ) -> Result<ArithLattice, Report> {
+impl LatticeSemantics<ArithLattice> for Addi {
+    fn propagate(&self, _op: &Operation) -> Result<ArithLattice, Report> {
         Ok(ArithLattice::Int64)
     }
 }
 
 // Propagation rules.
 impl LatticeSemantics<ArithLattice> for Return {
-    fn propagate(
-        &self,
-        _interp: &mut Interpreter<ArithLattice>,
-        _op: &Operation,
-    ) -> Result<ArithLattice, Report> {
+    fn propagate(&self, _op: &Operation) -> Result<ArithLattice, Report> {
         Ok(ArithLattice::Int64)
     }
 }
@@ -110,14 +80,14 @@ fn typeinf_0() -> Result<(), Report> {
     // you must declare the propagation rule as a dynamic interface.
     dynamic_interfaces! {
         Return: dyn LatticeSemantics<ArithLattice>;
-        Add: dyn LatticeSemantics<ArithLattice>;
+        Addi: dyn LatticeSemantics<ArithLattice>;
     }
 
     let mut func1 = Func.get_builder("new_func1", LocationInfo::Unknown);
     let operands = vec![func1.push_arg()?, func1.push_arg()?];
-    let add1 = Add.get_builder(operands, LocationInfo::Unknown);
+    let add1 = Addi.get_builder(operands, LocationInfo::Unknown);
     let ret = func1.push(add1)?;
-    let add2 = Add.get_builder(vec![ret, ret], LocationInfo::Unknown);
+    let add2 = Addi.get_builder(vec![ret, ret], LocationInfo::Unknown);
     let v = func1.push(add2)?;
     func1.push(Return.get_builder(vec![v], LocationInfo::Unknown))?;
     let end = func1.finish();

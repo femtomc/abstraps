@@ -7,12 +7,14 @@
 
 mod attributes;
 mod intrinsics;
+mod lattice;
 mod passes;
 mod traits;
 
 pub use self::{
     attributes::{ConstantAttr, SymbolAttr, SymbolTableAttr},
     intrinsics::{Func, Module},
+    lattice::BuiltinLattice,
     passes::PopulateSymbolTablePass,
     traits::{
         ConstantLike, NonVariadic, ProvidesSymbol, ProvidesSymbolTable, RequiresTerminators,
