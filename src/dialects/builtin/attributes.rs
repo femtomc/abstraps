@@ -48,8 +48,8 @@ pub enum LinkageAttr {
 impl fmt::Display for LinkageAttr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Private => write!(f, "{}", Paint::blue("private").bold()),
-            External => write!(f, "{}", Paint::blue("external").bold()),
+            LinkageAttr::Private => write!(f, "{}", Paint::blue("private").bold()),
+            LinkageAttr::External => write!(f, "{}", Paint::blue("external").bold()),
         }
     }
 }

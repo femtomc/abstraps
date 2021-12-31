@@ -2,17 +2,17 @@ use crate::core::interfaces::*;
 use crate::core::ir::{Intrinsic, Operation, SupportsInterfaceTraits};
 use color_eyre::{eyre::bail, Report};
 use downcast_rs::{impl_downcast, Downcast};
-use std::collections::HashMap;
-use std::hash::Hash;
-use std::sync::RwLock;
+use std::{collections::HashMap, hash::Hash, sync::RwLock};
 
 /// A trait object which supports caching of `AnalysisPass` instances
 /// by the `AnalysisManager`. Following [LLVM's pass
 /// manager](https://blog.llvm.org/posts/2021-03-26-the-new-pass-manager/), an [`AnalysisKey`] is a
-/// hashable piece of structured data _about_ the IR.
+/// hashable piece of structured data _about_ an [`Operation`].
 ///
 /// Provides a `to_pass` method which allows conversion/creation of an `AnalysisPass` (which further supports application to the IR).
 pub trait AnalysisKey: Downcast + Object {
+    /// Convert an [`AnalysisKey`] to an applicative [`AnalysisPass`] which can be applied
+    /// to an immutable reference to an [`Operation`] instance.
     fn to_pass(&self, op: &Operation) -> Box<dyn AnalysisPass>;
 }
 mopo!(dyn AnalysisKey);

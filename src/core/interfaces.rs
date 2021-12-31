@@ -550,7 +550,7 @@ pub fn find_in_registry<Type: 'static + ?Sized>(trait_id: TypeId) -> Option<VTab
     with_registry(|registry| registry.find::<Type>(trait_id))
 }
 
-/// Inserts an interface into the global crate-managed virtual table
+/// Inserts an interface into the globally-managed virtual table
 /// at runtime.
 ///
 /// Provides core functionality for the abstract interpretation interface,

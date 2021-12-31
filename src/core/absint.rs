@@ -220,7 +220,11 @@ where
     }
 }
 
-interfaces!(<L: 'static + LatticeJoin + Display> Signature<L>: dyn ObjectClone, dyn Display, dyn AnalysisKey where L: Clone);
+interfaces! {
+    <L: 'static + LatticeJoin + Display> Signature<L>: dyn ObjectClone,
+    dyn Display,
+    dyn AnalysisKey where L: Clone
+}
 
 #[derive(Debug)]
 pub struct LatticeInterpreterPass<L> {
@@ -253,4 +257,7 @@ where
     }
 }
 
-interfaces!(<L: 'static + LatticeJoin + Display> LatticeInterpreterPass<L>: dyn Display, dyn AnalysisPass where L: Clone);
+interfaces! {
+    <L: 'static + LatticeJoin + Display> LatticeInterpreterPass<L>: dyn Display,
+    dyn AnalysisPass where L: Clone
+}

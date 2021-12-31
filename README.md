@@ -8,8 +8,8 @@
 
 This project started off as an experiment in compiler design. Specifically, the author was motivated by:
 
-1. studying [the Julia language and compiler](https://julialang.org/) inference system to understand language design with extensible abstract interpretation as a compiler (and potentially language!) feature.
-2. studying [MLIR](https://mlir.llvm.org/) and the new, powerful ideas for IR and compiler design which are emerging from the project.
+* studying [the Julia language and compiler](https://julialang.org/) inference system to understand language design with extensible abstract interpretation as a compiler (and potentially language!) feature.
+* studying [MLIR](https://mlir.llvm.org/) and the powerful ideas for IR and compiler design which are emerging from the project.
 
 It turns out that there are quite a few of languages (e.g. Crystal, Nim, Julia) experimenting with abstract interpretation as part of their type systems. In the long term, the goal of the project might be to provide a stable substrate to experiment on compiler design _cons_ abstract interpreters inside of an IR framework which supports MLIR-like extensibility concepts. 
 
