@@ -2,12 +2,13 @@ use crate::dialects::arith::traits::*;
 use crate::dialects::builtin::NonVariadic;
 use crate::*;
 
-/// Floating point addition operation.
-///
-/// Supports elementwise mapping over rank matching tensors.
-intrinsic!(Addf: ["arith", "addf"], 
-    [Elementwise], 
-    extern: [NonVariadic]);
+intrinsic! {
+    /// Floating point addition operation.
+    /// Supports elementwise mapping over rank matching tensors.
+    Addf: ["arith", "addf"],
+    [Elementwise],
+    extern: [NonVariadic]
+}
 
 impl NonVariadic for Addf {
     fn verify(&self, op: &dyn SupportsInterfaceTraits) -> Result<(), Report> {
@@ -30,9 +31,11 @@ impl Addf {
     }
 }
 
-intrinsic!(Addi: ["arith", "addi"], 
-    [Elementwise, Commutative], 
-    extern: [NonVariadic]);
+intrinsic! {
+    Addi: ["arith", "addi"],
+    [Elementwise, Commutative],
+    extern: [NonVariadic]
+}
 
 impl NonVariadic for Addi {
     fn verify(&self, op: &dyn SupportsInterfaceTraits) -> Result<(), Report> {
@@ -55,22 +58,32 @@ impl Addi {
     }
 }
 
-intrinsic!(Andi: ["arith", "andi"], 
-    [Elementwise, Commutative], 
-    extern: []);
+intrinsic! {
+    Andi: ["arith", "andi"],
+    [Elementwise, Commutative],
+    extern: []
+}
 
-intrinsic!(Bitcast: ["arith", "bitcast"], 
-    [Elementwise], 
-    extern: []);
+intrinsic! {
+    Bitcast: ["arith", "bitcast"],
+    [Elementwise],
+    extern: []
+}
 
-intrinsic!(Cmpf: ["arith", "cmpf"], 
-    [Elementwise], 
-    extern: []);
+intrinsic! {
+    Cmpf: ["arith", "cmpf"],
+    [Elementwise],
+    extern: []
+}
 
-intrinsic!(Cmpi: ["arith", "cmpi"], 
-    [Elementwise], 
-    extern: []);
+intrinsic! {
+    Cmpi: ["arith", "cmpi"],
+    [Elementwise],
+    extern: []
+}
 
-intrinsic!(Divf: ["arith", "divf"], 
-    [Elementwise], 
-    extern: []);
+intrinsic! {
+    Divf: ["arith", "divf"],
+    [Elementwise],
+    extern: []
+}

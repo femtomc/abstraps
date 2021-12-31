@@ -79,10 +79,11 @@ mopo!(dyn Intrinsic);
 /// Here, these are just Rust traits implemented on the [`Intrinsic`].
 #[macro_export]
 macro_rules! intrinsic {
-    ($struct:ident:
+    ($(#[$attr:meta])* $struct:ident:
      [$namespace:literal, $name:literal],
      [$($trait:ident),*],
      extern: [$($extr:ident),*]) => {
+        $(#[$attr])*
         #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
         pub struct $struct;
 
