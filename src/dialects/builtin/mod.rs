@@ -12,12 +12,12 @@ mod passes;
 mod traits;
 
 pub use self::{
-    attributes::{ConstantAttr, SymbolAttr, SymbolTableAttr},
+    attributes::{ConstantAttr, LinkageAttr, SymbolAttr, SymbolTableAttr},
     intrinsics::{Func, Module},
     lattice::BuiltinLattice,
     passes::PopulateSymbolTablePass,
     traits::{
-        ConstantLike, NonVariadic, ProvidesSymbol, ProvidesSymbolTable, RequiresTerminators,
-        Terminator,
+        ConstantLike, FunctionLike, NonVariadic, ProvidesLinkage, ProvidesSymbol,
+        ProvidesSymbolTable, RequiresTerminators, Terminator,
     },
 };

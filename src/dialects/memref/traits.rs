@@ -1,3 +1,4 @@
+use crate::core::SupportsInterfaceTraits;
 use crate::{bail, Report};
 use yansi::Paint;
 

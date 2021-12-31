@@ -1,4 +1,4 @@
 mod intrinsics;
 mod traits;
 
-pub use self::*;
+pub use self::{intrinsics::*, traits::*};

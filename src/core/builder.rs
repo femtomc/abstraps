@@ -1,8 +1,6 @@
 use crate::core::diagnostics::LocationInfo;
 use crate::core::ir::{Attribute, BasicBlock, Intrinsic, Operation, SupportsInterfaceTraits, Var};
 use crate::core::region::Region;
-use alloc::string::String;
-use alloc::vec::Vec;
 use color_eyre::Report;
 use std::collections::HashMap;
 

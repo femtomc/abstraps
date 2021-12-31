@@ -1,8 +1,6 @@
 use crate::core::diagnostics::LocationInfo;
 use crate::core::interfaces::*;
 use crate::core::region::Region;
-use alloc::string::String;
-use alloc::vec::Vec;
 use color_eyre::Report;
 use downcast_rs::{impl_downcast, Downcast};
 use std::collections::HashMap;
@@ -29,7 +27,7 @@ impl Var {
 /// The core means of IR extension - defines
 /// a computational unit with a particular (user-defined) semantics.
 /// Practically, an `Intrinsic` is always instanced inside of an [`Operation`] (or as part of
-/// [`crate::OperationBuilder`] IR construction)
+/// [`crate::core::OperationBuilder`] IR construction)
 /// and specifies the interface identity of that [`Operation`] in the IR.
 ///
 /// `Intrinsic` instances are placed inside of [`Operation`] instances
@@ -99,8 +97,8 @@ macro_rules! intrinsic {
             }
 
             fn verify(&self, boxed: &Box<dyn Intrinsic>, op: &dyn SupportsInterfaceTraits) -> Result<(), Report> {
-                $(boxed.query_ref::<dyn $trait>().unwrap().verify(op)?;)*
-                $(boxed.query_ref::<dyn $extr>().unwrap().verify(op)?;)*
+                $($trait::verify(boxed.query_ref::<dyn $trait>().unwrap(), op)?;)*
+                $($extr::verify(boxed.query_ref::<dyn $extr>().unwrap(), op)?;)*
                 Ok(())
             }
         }
@@ -140,7 +138,8 @@ pub trait SupportsInterfaceTraits: std::fmt::Display {
 /// 3. A set of `regions` - which handle scoping.
 /// 4. A set of `successors` - blocks which the operation can transfer control to.
 ///
-/// [`Operation`] instances are almost always created through the builder interface.
+/// [`Operation`] instances are almost always created through the builder interface
+/// ([`crate::core::OperationBuilder`]).
 #[derive(Debug)]
 pub struct Operation {
     location: LocationInfo,

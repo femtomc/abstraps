@@ -1,5 +1,4 @@
-//! This module provides target-specific code generation
-//! capabilities.
+//! Target-specific code generation capabilities.
 //!
 //! Code generation has been organized through a common set of traits
 //! (which capture traversal and emission on SSA-based block IRs).

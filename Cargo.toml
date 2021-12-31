@@ -1,6 +1,6 @@
 [package]
 name = "abstraps"
-version = "0.1.7"
+version = "0.1.8"
 edition = "2021"
 authors = ["McCoy R. Becker"]
 description = "Extensible compiler middle layer with abstract interpretation and code generation to MLIR."

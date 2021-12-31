@@ -1,3 +1,4 @@
+use crate::core::*;
 use crate::*;
 
 intrinsic!(Alloc: ["memref", "alloc"], [], extern: []);

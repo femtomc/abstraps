@@ -1,5 +1,5 @@
 use crate::backends::mlir::bindings::*;
-use crate::Var;
+use crate::core::Var;
 use std::collections::HashMap;
 use std::ffi::CString;
 use std::sync::{Arc, RwLock};

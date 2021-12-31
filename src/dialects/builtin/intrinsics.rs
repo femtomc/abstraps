@@ -1,9 +1,11 @@
-use crate::dialects::builtin::attributes::{SymbolAttr, SymbolTableAttr};
-use crate::dialects::builtin::traits::{ProvidesSymbol, ProvidesSymbolTable, RequiresTerminators};
+use crate::core::*;
+use crate::dialects::builtin::*;
 use crate::*;
 
-// Module intrinsic.
-intrinsic!(Module: ["builtin", "module"], [ProvidesSymbolTable], extern: []);
+intrinsic! {
+    Module: ["builtin", "module"],
+    [ProvidesSymbolTable], extern: []
+}
 
 impl Module {
     pub fn get_builder(&self, name: &str, loc: LocationInfo) -> OperationBuilder {
@@ -21,8 +23,11 @@ impl Module {
     }
 }
 
-// Function intrinsic.
-intrinsic!(Func: ["builtin", "func"], [ProvidesSymbol, RequiresTerminators], extern: []);
+intrinsic! {
+    Func: ["builtin", "func"],
+    [ProvidesSymbol, ProvidesLinkage, FunctionLike, RequiresTerminators],
+    extern: []
+}
 
 impl Func {
     pub fn get_builder(&self, name: &str, loc: LocationInfo) -> OperationBuilder {
@@ -34,6 +39,8 @@ impl Func {
         b.push_block(blk);
         let attr = SymbolAttr::new(name);
         b.insert_attr("symbol", Box::new(attr));
+        let lattr = LinkageAttr::Private;
+        b.insert_attr("linkage", Box::new(lattr));
         b
     }
 }

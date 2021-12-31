@@ -1,3 +1,7 @@
+//! Core functionality, including IR ([`Operation`]) definition,
+//! pass manager implementation, and declarative macro functionality
+//! for intrinsic/operation extension.
+
 mod absint;
 mod builder;
 mod diagnostics;

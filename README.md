@@ -6,11 +6,12 @@
 
 > Extensible compiler design with abstract interpreters.
 
-This project started off as an experiment in compiler design. Specifically, the author was motivated by studying [the Julia language and compiler](https://julialang.org/) inference system to understand language design with extensible abstract interpretation as a compiler (and potentially language!) feature.
+This project started off as an experiment in compiler design. Specifically, the author was motivated by:
 
-It turns out that there are quite a few of languages (e.g. Crystal, Nim, Julia) experimenting with abstract interpretation as part of their type systems. In the long term, the goal of the project might be to provide a stable substrate to experiment on compiler design _cons_ abstract interpreters on an IR framework which supports MLIR-like concepts. 
+1. studying [the Julia language and compiler](https://julialang.org/) inference system to understand language design with extensible abstract interpretation as a compiler (and potentially language!) feature.
+2. studying [MLIR](https://mlir.llvm.org/) and the new, powerful ideas for IR and compiler design which are emerging from the project.
 
-The original author would have liked to just do this in MLIR proper -- but given time constraints and engineering ability (or lack thereof in C++), this project is implemented in Rust. In fact, for those interested in MLIR -- you may find "another implementation viewpoint" useful on the design concepts -- the repository has been kept as clean as possible, or otherwise documented with respect to non-trivial implementation decisions and their motivation from MLIR.
+It turns out that there are quite a few of languages (e.g. Crystal, Nim, Julia) experimenting with abstract interpretation as part of their type systems. In the long term, the goal of the project might be to provide a stable substrate to experiment on compiler design _cons_ abstract interpreters inside of an IR framework which supports MLIR-like extensibility concepts. 
 
 #### Claims
 
@@ -21,6 +22,14 @@ The framework provides:
 3. Builder interfaces which support code generation to MLIR.
 
 "Extensibility" means that there are no fixed intrinsics built into the IR (or any of the interfaces). The same is true for abstract lattices -- the interpreter patterns describe how (certain instances) of abstract interpreters will traverse the IR, but the user must provide the semantics by specifying intrinsics and how the interpreter should interpret the intrinsics on a user-defined lattice.
+
+---
+
+**Note**:
+
+<sup>
+The original author would have liked to just do this in MLIR proper -- but given time constraints and engineering ability (or lack thereof in C++), this project is implemented in Rust. In fact, for those interested in MLIR -- you may find "another implementation viewpoint" useful on the design concepts. The codebase has been documented with respect to non-trivial implementation decisions and their motivation from MLIR.
+</sup>
 
 ---
 
