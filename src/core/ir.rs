@@ -96,6 +96,7 @@ macro_rules! intrinsic {
                 return $name;
             }
 
+            #[allow(unused_variables)]
             fn verify(&self, boxed: &Box<dyn Intrinsic>, op: &dyn SupportsInterfaceTraits) -> Result<(), Report> {
                 $($trait::verify(boxed.query_ref::<dyn $trait>().unwrap(), op)?;)*
                 $($extr::verify(boxed.query_ref::<dyn $extr>().unwrap(), op)?;)*
@@ -117,6 +118,72 @@ mopo!(dyn Attribute);
 pub trait AttributeValue<T> {
     fn get_value(&self) -> &T;
     fn get_value_mut(&mut self) -> &mut T;
+}
+
+#[macro_export]
+macro_rules! attribute {
+    ($struct:ident:
+     $key:literal,
+     trait: $trt:ident) => {
+        impl Attribute for $struct {}
+
+        impl AttributeValue<$struct> for $struct {
+            fn get_value(&self) -> &$struct {
+                self
+            }
+
+            fn get_value_mut(&mut self) -> &mut $struct {
+                self
+            }
+        }
+
+        pub trait $trt {
+            fn verify(&self, op: &dyn SupportsInterfaceTraits) -> Result<(), Report> {
+                if !op.get_attributes().contains_key($key) {
+                    bail!(format!(
+                            "{} must provide a {} key for {} trait.",
+                            op.get_intrinsic(),
+                            Paint::magenta($key),
+                            Paint::magenta(stringify!($trt)).bold()
+                    ))
+                }
+                let obj = op.get_attributes().get($key).unwrap();
+                match obj.query_ref::<dyn AttributeValue<$struct>>() {
+                    None => bail!(format!("{}:\nThe attribute indexed by {} does not provide a {} value, which is required to support the {} trait.",
+                            op.get_intrinsic(),
+                            Paint::magenta($key),
+                            Paint::magenta(stringify!($struct)).bold(),
+                            Paint::magenta(stringify!($trt)).bold(),
+                    )),
+                    Some(_v) => Ok(()),
+                }
+            }
+
+            fn get_value<'a>(&self, op: &'a dyn SupportsInterfaceTraits) -> &'a $struct {
+                let obj = op.get_attributes().get($key).unwrap();
+                let attr_val = obj
+                    .query_ref::<dyn AttributeValue<$struct>>()
+                    .unwrap();
+                attr_val.get_value()
+            }
+
+            fn get_value_mut<'a>(
+                &self,
+                op: &'a mut dyn SupportsInterfaceTraits,
+            ) -> &'a mut $struct {
+                let obj = op.get_attributes_mut().get_mut($key).unwrap();
+                let attr_val = obj
+                    .query_mut::<dyn AttributeValue<$struct>>()
+                    .unwrap();
+                attr_val.get_value_mut()
+            }
+        }
+
+        interfaces!($struct: dyn Attribute,
+            dyn std::fmt::Display,
+            dyn std::fmt::Debug,
+            dyn AttributeValue<$struct>);
+    }
 }
 
 /// A trait which provides non-mutating accessors for use in checking

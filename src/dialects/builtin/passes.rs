@@ -1,5 +1,5 @@
 use crate::core::*;
-use crate::dialects::builtin::traits::{ProvidesSymbol, ProvidesSymbolTable};
+use crate::dialects::builtin::*;
 use crate::*;
 use std::sync::RwLock;
 use yansi::Paint;
@@ -15,10 +15,10 @@ impl OperationPass for PopulateSymbolTablePass {
     fn check(&self, op_lock: &RwLock<Operation>) -> Result<(), Report> {
         let op = &*op_lock.read().unwrap();
         let intr = op.get_intrinsic();
-        match intr.query_ref::<dyn ProvidesSymbolTable>() {
+        match intr.query_ref::<dyn ProvidesSymbolTableAttr>() {
             None => bail!(format!(
                 "Operation does not satisfy the {} interface trait.",
-                Paint::magenta("ProvidesSymbolTable").bold()
+                Paint::magenta("ProvidesSymbolTableAttr").bold()
             )),
             Some(v) => v.verify(op)?,
         }
@@ -36,7 +36,7 @@ impl OperationPass for PopulateSymbolTablePass {
             let mut v: Vec<(String, Var)> = Vec::new();
             for (var, child) in region.get_block_iter(0) {
                 let intr = child.get_intrinsic();
-                match intr.query_ref::<dyn ProvidesSymbol>() {
+                match intr.query_ref::<dyn ProvidesSymbolAttr>() {
                     None => (),
                     Some(trt) => match trt.verify(op) {
                         Ok(_) => v.push((trt.get_value(child).to_string(), var)),
@@ -49,7 +49,7 @@ impl OperationPass for PopulateSymbolTablePass {
         let mut op = op_lock.write().unwrap();
         let op_intr = op.get_intrinsic().clone();
         let tbl = op_intr
-            .query_ref::<dyn ProvidesSymbolTable>()
+            .query_ref::<dyn ProvidesSymbolTableAttr>()
             .unwrap()
             .get_value_mut(&mut *op);
         for (s, v) in v.into_iter() {

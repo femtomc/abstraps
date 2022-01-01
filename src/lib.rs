@@ -5,7 +5,6 @@ pub mod backends;
 pub mod core;
 pub mod dialects;
 
-#[macro_use]
 extern crate color_eyre;
 extern crate tracing;
 extern crate tracing_subscriber;

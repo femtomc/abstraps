@@ -24,11 +24,15 @@ impl NonVariadic for Addf {
 }
 
 impl Addf {
-    pub fn get_builder(&self, operands: Vec<Var>, loc: LocationInfo) -> OperationBuilder {
+    pub fn get_builder(
+        &self,
+        operands: Vec<Var>,
+        loc: LocationInfo,
+    ) -> Result<OperationBuilder, Report> {
         let intr = Box::new(Addf);
         let mut b = OperationBuilder::default(intr, loc);
         b.set_operands(operands);
-        b
+        Ok(b)
     }
 }
 
@@ -51,11 +55,15 @@ impl NonVariadic for Addi {
 }
 
 impl Addi {
-    pub fn get_builder(&self, operands: Vec<Var>, loc: LocationInfo) -> OperationBuilder {
+    pub fn get_builder(
+        &self,
+        operands: Vec<Var>,
+        loc: LocationInfo,
+    ) -> Result<OperationBuilder, Report> {
         let intr = Box::new(Addi);
         let mut b = OperationBuilder::default(intr, loc);
         b.set_operands(operands);
-        b
+        Ok(b)
     }
 }
 

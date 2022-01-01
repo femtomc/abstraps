@@ -69,6 +69,7 @@ macro_rules! mopo {
                 }
             }
 
+            #[allow(dead_code)]
             pub fn query_mut<U: ::std::any::Any + ?Sized>(&mut self) -> Option<&mut U> {
                 if let Some(vtable) = self.query_vtable(::std::any::TypeId::of::<U>()) {
                     unsafe {
@@ -103,6 +104,7 @@ macro_rules! mopo {
                 }
             }
 
+            #[allow(dead_code)]
             pub fn query_arc<U: ::std::any::Any + ?Sized>(
                 self_: ::std::sync::Arc<Self>,
             ) -> ::std::result::Result<::std::sync::Arc<U>, ::std::sync::Arc<Self>> {
@@ -123,6 +125,7 @@ macro_rules! mopo {
                 }
             }
 
+            #[allow(dead_code)]
             pub fn query_rc<U: ::std::any::Any + ?Sized>(
                 self_: ::std::rc::Rc<Self>,
             ) -> ::std::result::Result<::std::rc::Rc<U>, ::std::rc::Rc<Self>> {
@@ -142,6 +145,8 @@ macro_rules! mopo {
                     Err(self_)
                 }
             }
+
+            #[allow(dead_code)]
             pub fn obj_partial_eq(&self, other: &Self) -> bool {
                 if let Some(x) = self.query_ref::<dyn $crate::core::ObjectPartialEq>() {
                     x.obj_eq(other.query_ref().unwrap())
@@ -152,6 +157,8 @@ macro_rules! mopo {
                     )
                 }
             }
+
+            #[allow(dead_code)]
             pub fn obj_partial_cmp(&self, other: &Self) -> Option<::std::cmp::Ordering> {
                 if let Some(x) = self.query_ref::<dyn $crate::core::ObjectPartialOrd>() {
                     x.obj_partial_cmp(other.query_ref().unwrap())

@@ -1,6 +1,5 @@
 use crate::core::SupportsInterfaceTraits;
-use crate::{bail, Report};
-use yansi::Paint;
+use crate::Report;
 
 pub trait AutomaticAllocationScope {
     fn verify(&self, _op: &dyn SupportsInterfaceTraits) -> Result<(), Report> {

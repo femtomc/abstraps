@@ -76,7 +76,7 @@ impl LatticeSemantics<ArithLattice> for Return {
 
 #[test]
 fn typeinf_0() -> Result<(), Report> {
-    diagnostics_setup();
+    diagnostics_setup()?;
     // When using the abstract interpretation system,
     // you must declare the propagation rule as a dynamic interface.
     dynamic_interfaces! {
@@ -84,13 +84,13 @@ fn typeinf_0() -> Result<(), Report> {
         Addi: dyn LatticeSemantics<ArithLattice>;
     }
 
-    let mut func1 = Func.get_builder("new_func1", LocationInfo::Unknown);
+    let mut func1 = Func.get_builder("new_func1", LocationInfo::Unknown)?;
     let operands = vec![func1.push_arg()?, func1.push_arg()?];
-    let add1 = Addi.get_builder(operands, LocationInfo::Unknown);
+    let add1 = Addi.get_builder(operands, LocationInfo::Unknown)?;
     let ret = func1.push(add1)?;
-    let add2 = Addi.get_builder(vec![ret, ret], LocationInfo::Unknown);
+    let add2 = Addi.get_builder(vec![ret, ret], LocationInfo::Unknown)?;
     let v = func1.push(add2)?;
-    func1.push(Return.get_builder(vec![v], LocationInfo::Unknown))?;
+    func1.push(Return.get_builder(vec![v], LocationInfo::Unknown)?)?;
     let end = func1.finish();
     assert!(end.is_ok());
     let op = end.unwrap();

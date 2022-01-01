@@ -20,23 +20,9 @@ impl fmt::Display for ConstantAttr {
     }
 }
 
-impl Attribute for ConstantAttr {}
-
-impl AttributeValue<ConstantAttr> for ConstantAttr {
-    fn get_value(&self) -> &ConstantAttr {
-        self
-    }
-
-    fn get_value_mut(&mut self) -> &mut ConstantAttr {
-        self
-    }
-}
-
-interfaces! {
-    ConstantAttr: dyn Attribute,
-    dyn fmt::Display,
-    dyn fmt::Debug,
-    dyn AttributeValue<ConstantAttr>
+attribute! {
+    ConstantAttr: "builtin.value",
+    trait: ProvidesConstantAttr
 }
 
 #[derive(Debug)]
@@ -54,34 +40,20 @@ impl fmt::Display for LinkageAttr {
     }
 }
 
-impl Attribute for LinkageAttr {}
-
-impl AttributeValue<LinkageAttr> for LinkageAttr {
-    fn get_value(&self) -> &LinkageAttr {
-        self
-    }
-
-    fn get_value_mut(&mut self) -> &mut LinkageAttr {
-        self
-    }
-}
-
-interfaces! {
-    LinkageAttr: dyn Attribute,
-    dyn fmt::Display,
-    dyn fmt::Debug,
-    dyn AttributeValue<LinkageAttr>
+attribute! {
+    LinkageAttr: "builtin.linkage",
+    trait: ProvidesLinkageAttr
 }
 
 /// Allows static type annotations for function-like operations
 /// which provide external linkage.
 #[derive(Debug)]
-pub struct StaticTypeAttr {
+pub struct SignatureAttr {
     argts: Vec<BuiltinLattice>,
     rett: BuiltinLattice,
 }
 
-impl fmt::Display for StaticTypeAttr {
+impl fmt::Display for SignatureAttr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "<")?;
         let l = self.argts.len();
@@ -96,23 +68,9 @@ impl fmt::Display for StaticTypeAttr {
     }
 }
 
-impl Attribute for StaticTypeAttr {}
-
-impl AttributeValue<StaticTypeAttr> for StaticTypeAttr {
-    fn get_value(&self) -> &StaticTypeAttr {
-        self
-    }
-
-    fn get_value_mut(&mut self) -> &mut StaticTypeAttr {
-        self
-    }
-}
-
-interfaces! {
-    StaticTypeAttr: dyn Attribute,
-    dyn fmt::Display,
-    dyn fmt::Debug,
-    dyn AttributeValue<StaticTypeAttr>
+attribute! {
+    SignatureAttr: "builtin.signature",
+    trait: ProvidesSignatureAttr
 }
 
 #[derive(Debug)]
@@ -121,73 +79,66 @@ pub struct SymbolTableAttr(HashMap<String, Var>);
 impl fmt::Display for SymbolTableAttr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{{ ")?;
-        self.0.iter().fold(true, |first, elem| {
-            if !first {
-                write!(f, ", ");
-            }
-            write!(f, "{} => {}", Paint::blue(elem.0), elem.1);
-            false
-        });
+        let l = self.0.len();
+        for (ind, v) in self.0.iter().enumerate() {
+            match ind == l - 1 {
+                true => write!(f, "{} => {}", Paint::blue(v.0), v.1)?,
+                false => write!(f, "{} => {}, ", Paint::blue(v.0), v.1)?,
+            };
+        }
         write!(f, " }}")?;
         Ok(())
     }
 }
 
-impl Attribute for SymbolTableAttr {}
-
-impl AttributeValue<HashMap<String, Var>> for SymbolTableAttr {
-    fn get_value(&self) -> &HashMap<String, Var> {
-        &self.0
-    }
-
-    fn get_value_mut(&mut self) -> &mut HashMap<String, Var> {
-        &mut self.0
-    }
-}
-
 impl SymbolTableAttr {
+    pub fn insert(&mut self, s: String, v: Var) {
+        self.0.insert(s, v);
+    }
+
     pub fn new() -> SymbolTableAttr {
         SymbolTableAttr(HashMap::new())
     }
 }
 
-interfaces! {
-    SymbolTableAttr: dyn Attribute,
-    dyn fmt::Display,
-    dyn std::fmt::Debug,
-    dyn AttributeValue<HashMap<String, Var>>
+attribute! {
+    SymbolTableAttr: "builtin.symbols",
+    trait: ProvidesSymbolTableAttr
 }
 
 #[derive(Debug)]
-pub struct SymbolAttr(String);
+pub enum SymbolVisibility {
+    Public,
+    Private,
+    Nested,
+}
 
-impl Attribute for SymbolAttr {}
-
-impl fmt::Display for SymbolAttr {
+impl fmt::Display for SymbolVisibility {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", Paint::blue(&self.0))
+        match self {
+            SymbolVisibility::Public => write!(f, "{}", Paint::white("public")),
+            SymbolVisibility::Private => write!(f, "{}", Paint::white("private")),
+            SymbolVisibility::Nested => write!(f, "{}", Paint::white("nested")),
+        }
     }
 }
 
-impl AttributeValue<String> for SymbolAttr {
-    fn get_value(&self) -> &String {
-        &self.0
-    }
+#[derive(Debug)]
+pub struct SymbolAttr(String, SymbolVisibility);
 
-    fn get_value_mut(&mut self) -> &mut String {
-        &mut self.0
+impl fmt::Display for SymbolAttr {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{} {}", Paint::white(&self.1), Paint::blue(&self.0))
     }
 }
 
 impl SymbolAttr {
     pub fn new(s: &str) -> SymbolAttr {
-        SymbolAttr(s.to_string())
+        SymbolAttr(s.to_string(), SymbolVisibility::Public)
     }
 }
 
-interfaces! {
-    SymbolAttr: dyn Attribute,
-    dyn std::fmt::Display,
-    dyn std::fmt::Debug,
-    dyn AttributeValue<String>
+attribute! {
+    SymbolAttr: "builtin.symbol",
+    trait: ProvidesSymbolAttr
 }
