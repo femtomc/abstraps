@@ -16,7 +16,7 @@ pub fn diagnostics_setup() -> Result<(), Report> {
 }
 
 /// Globally disable terminal color printing.
-pub fn diagnostics_color_disable() {
+pub fn diagnostics_paint_disable() {
     Paint::disable();
 }
 

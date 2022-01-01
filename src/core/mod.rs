@@ -16,7 +16,7 @@ mod region;
 pub use self::{
     absint::{Interpreter, LatticeJoin, LatticeSemantics, Signature},
     builder::OperationBuilder,
-    diagnostics::{diagnostics_color_disable, diagnostics_setup, LocationInfo},
+    diagnostics::{diagnostics_paint_disable, diagnostics_setup, LocationInfo},
     interfaces::*,
     ir::{
         Attribute, AttributeValue, BasicBlock, Intrinsic, Operation, SupportsInterfaceTraits, Var,
