@@ -11,6 +11,8 @@ license-file = "LICENSE"
 [dependencies]
 color-eyre = "0.5.11"
 cranelift = { version = "0.79.0", optional = true }
+cranelift-module = { version = "0.79.0", optional = true }
+cranelift-jit = { version = "0.79.0", optional = true }
 downcast-rs = "1.2.0"
 indenter = "0.3.3"
 lazy_static = "1.4.0"
@@ -22,5 +24,11 @@ yansi = "0.5.0"
 bindgen = "0.59.1"
 
 [features]
+default = ["arith", "base", "builtin"]
+arith = []
+base = []
+builtin = []
+clift = ["cranelift", "cranelift-module", "cranelift-jit"]
+memref = []
+symbolic = []
 mlir = []
-clift = ["cranelift"]

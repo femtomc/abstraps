@@ -1,1 +1,1 @@
-pub mod cranelift;
+pub mod jit;
