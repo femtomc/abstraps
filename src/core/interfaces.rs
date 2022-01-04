@@ -54,6 +54,7 @@ macro_rules! vtable_for {
 macro_rules! mopo {
     ($name:ty) => {
         impl $name {
+            #[allow(dead_code)]
             pub fn query_ref<U: ::std::any::Any + ?Sized>(&self) -> Option<&U> {
                 if let Some(vtable) = self.query_vtable(::std::any::TypeId::of::<U>()) {
                     unsafe {
@@ -85,6 +86,7 @@ macro_rules! mopo {
                 }
             }
 
+            #[allow(dead_code)]
             pub fn query<U: ::std::any::Any + ?Sized>(
                 self: Box<Self>,
             ) -> ::std::result::Result<Box<U>, Box<Self>> {
@@ -167,11 +169,13 @@ macro_rules! mopo {
                 }
             }
         }
+
         impl ::std::clone::Clone for Box<$name> {
             fn clone(&self) -> Self {
                 (**self).to_owned()
             }
         }
+
         impl ::std::borrow::ToOwned for $name {
             type Owned = Box<$name>;
             fn to_owned(&self) -> Box<$name> {
@@ -182,6 +186,7 @@ macro_rules! mopo {
                     .unwrap()
             }
         }
+
         impl ::std::fmt::Debug for $name {
             fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
                 if let Some(o) = self.query_ref::<dyn std::fmt::Debug>() {
@@ -191,6 +196,7 @@ macro_rules! mopo {
                 }
             }
         }
+
         impl ::std::cmp::PartialEq for $name {
             fn eq(&self, other: &Self) -> bool {
                 // Require `Eq` rather than `PartialEq` as this allows `Object`s to be used as
@@ -206,12 +212,15 @@ macro_rules! mopo {
                 }
             }
         }
+
         impl ::std::cmp::Eq for $name {}
+
         impl ::std::cmp::PartialOrd for $name {
             fn partial_cmp(&self, other: &Self) -> Option<::std::cmp::Ordering> {
                 Some(self.cmp(other))
             }
         }
+
         impl ::std::cmp::Ord for $name {
             fn cmp(&self, other: &Self) -> ::std::cmp::Ordering {
                 if let Some(x) = self.query_ref::<dyn $crate::core::ObjectOrd>() {
@@ -222,6 +231,7 @@ macro_rules! mopo {
                 Ord::cmp(&(self as *const Self), &(other as *const Self))
             }
         }
+
         impl ::std::hash::Hash for $name {
             fn hash<H: ::std::hash::Hasher>(&self, state: &mut H) {
                 if let Some(x) = self.query_ref::<dyn $crate::core::ObjectHash>() {
@@ -268,6 +278,7 @@ mopo!(dyn Object);
 pub trait ObjectClone {
     fn obj_clone(&self) -> Box<dyn Object>;
 }
+
 impl<T: Clone + Object> ObjectClone for T {
     fn obj_clone(&self) -> Box<dyn Object> {
         Box::new(self.clone())
@@ -281,6 +292,7 @@ impl<T: Clone + Object> ObjectClone for T {
 pub trait ObjectPartialEq {
     fn obj_eq(&self, other: &dyn Object) -> bool;
 }
+
 impl<T: PartialEq + Object> ObjectPartialEq for T {
     fn obj_eq(&self, other: &dyn Object) -> bool {
         if let Some(o) = other.query_ref::<Self>() {
@@ -296,6 +308,7 @@ impl<T: PartialEq + Object> ObjectPartialEq for T {
 /// allow `Object` trait objects to be comparable in this way.
 #[doc(hidden)]
 pub trait ObjectEq: ObjectPartialEq {}
+
 impl<T: Eq + Object> ObjectEq for T {}
 
 /// This is an object-safe version of `PartialOrd`, which is automatically
@@ -305,6 +318,7 @@ impl<T: Eq + Object> ObjectEq for T {}
 pub trait ObjectPartialOrd {
     fn obj_partial_cmp(&self, other: &dyn Object) -> Option<std::cmp::Ordering>;
 }
+
 impl<T: PartialOrd + Object> ObjectPartialOrd for T {
     fn obj_partial_cmp(&self, other: &dyn Object) -> Option<std::cmp::Ordering> {
         if let Some(o) = other.query_ref::<Self>() {
@@ -322,6 +336,7 @@ impl<T: PartialOrd + Object> ObjectPartialOrd for T {
 pub trait ObjectOrd {
     fn obj_cmp(&self, other: &dyn Object) -> Option<std::cmp::Ordering>;
 }
+
 impl<T: Ord + Object> ObjectOrd for T {
     fn obj_cmp(&self, other: &dyn Object) -> Option<std::cmp::Ordering> {
         other.query_ref::<Self>().map(|o| self.cmp(o))
@@ -338,6 +353,7 @@ impl<T: Ord + Object> ObjectOrd for T {
 pub trait ObjectHash {
     fn obj_hash(&self, state: &mut dyn Hasher);
 }
+
 impl<T: Hash + Object> ObjectHash for T {
     fn obj_hash(&self, state: &mut dyn Hasher) {
         let mut h = DefaultHasher::new();
@@ -346,14 +362,15 @@ impl<T: Hash + Object> ObjectHash for T {
     }
 }
 
-/// A macro which exposes static (virtual) lookup for trait objects
-/// which implement the `Object` interface.
+/// A macro which exposes static (virtual) lookup registration
+/// for trait objects which implement the `Object` interface.
 ///
 /// This is internal, and provides core functionality for [`intrinsic!`].
 /// Users are not expected to interact with this functionality directly.
 #[macro_export(local_inner_macros)]
 macro_rules! interfaces {
     (@unbracket $(($($v:tt)*))*) => ($($($v)*)*);
+
     (@inner $imp:tt $cond:tt $name:ty: $($iface:ty),+ {}) => (
         interfaces!(@unbracket $imp ($crate::core::HasInterface<$name> for $name) $cond ({}));
         interfaces!(@unbracket $imp ($crate::core::HasInterface<dyn $crate::core::Object> for $name) $cond ({}));
@@ -374,45 +391,59 @@ macro_rules! interfaces {
             }
         }));
     );
+
     (@imp ($($result:tt)*) $name:ty: $($iface:ty),+ $(where $($cond:tt)*)*) => (
         interfaces!(@inner (unsafe impl<$($result)*>) ($(where $($cond)*)*) $name: $($iface),+ {});
     );
+
     (@parse < $($rest:tt)*) => (
         interfaces!(@parseArg () $($rest)*);
     );
+
     (@parse $($rest:tt)*) => (
         interfaces!(@imp () $($rest)*);
     );
+
     (@parseArg ($($result:tt)*) $name:ident , $($rest:tt)*) => (
         interfaces!(@parseArg ($($result)* $name ,) $($rest)*);
     );
+
     (@parseArg ($($result:tt)*) $name:ident : $($rest:tt)*) => (
         interfaces!(@parseBound ($($result)* $name : ) $($rest)*);
     );
+
     (@parseArg ($($result:tt)*) $name:ident > $($rest:tt)*) => (
         interfaces!(@imp ($($result)* $name) $($rest)*);
     );
+
     (@parseBound ($($result:tt)*) $bound:tt + $($rest:tt)*) => (
         interfaces!(@parseBound ($($result)* $bound +) $($rest)*);
     );
+
     (@parseBound ($($result:tt)*) $bound:tt , $($rest:tt)*) => (
         interfaces!(@parseArg ($($result)* $bound ,) $($rest)*);
     );
+
     (@parseBound ($($result:tt)*) $bound:tt > $($rest:tt)*) => (
         interfaces!(@imp ($($result)* $bound) $($rest)*);
     );
+
     (< $($rest:tt)*) => (
         interfaces!(@parse < $($rest)*);
     );
+
     ($x:ty: $($rest:tt)*) => (
         interfaces!(@parse $x: $($rest)*);
     );
+
     (@expand2 ($name:ty) ($($rest:tt)*)) => (
         interfaces!($name $($rest)*);
     );
+
     (@expand {$($name:ty),*} $rest:tt) => (
         $( interfaces!(@expand2 ($name) $rest); )*
     );
+
     ({$($name:ty),*} $($rest:tt)*) => (
         interfaces!(@expand {$($name),*} ($($rest)*));
     );
@@ -456,9 +487,11 @@ interfaces!(
 interfaces!({
     Vec<bool>, Vec<i8>, Vec<u8>, Vec<i16>, Vec<u16>, Vec<i32>, Vec<u32>, Vec<i64>, Vec<u64>, Vec<char>
 }: dyn ObjectClone, dyn Debug, dyn ObjectPartialEq, dyn ObjectPartialOrd, dyn ObjectEq, dyn ObjectOrd, dyn ObjectHash);
+
 interfaces!({
     Vec<f32>, Vec<f64>
 }: dyn ObjectClone, dyn Debug, dyn ObjectPartialEq, dyn ObjectPartialOrd);
+
 interfaces!({
     Vec<String>, Vec<PathBuf>
 }: dyn ObjectClone, dyn Debug, dyn ObjectPartialEq, dyn ObjectPartialOrd, dyn ObjectEq, dyn ObjectOrd, dyn ObjectHash);
@@ -480,6 +513,7 @@ impl Registry {
         self.entries
             .insert((TypeId::of::<Type>(), TypeId::of::<Trait>()), vtable);
     }
+
     fn find<Type: 'static + ?Sized>(&self, trait_id: TypeId) -> Option<VTable> {
         self.entries.get(&(TypeId::of::<Type>(), trait_id)).cloned()
     }
@@ -503,6 +537,7 @@ struct LocalRegistry {
 lazy_static! {
     static ref GLOBAL_REGISTRY: RwLock<GlobalRegistry> = RwLock::default();
 }
+
 static GLOBAL_REGISTRY_VERSION: AtomicUsize = AtomicUsize::new(0);
 
 impl LocalRegistry {

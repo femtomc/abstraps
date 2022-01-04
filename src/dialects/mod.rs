@@ -25,5 +25,8 @@ pub mod cranelift;
 #[cfg(feature = "memref")]
 pub mod memref;
 
+#[cfg(feature = "scf")]
+pub mod scf;
+
 #[cfg(feature = "symbolic")]
 pub mod symbolic;
