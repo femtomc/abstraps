@@ -62,7 +62,7 @@ pub struct Interpreter<L> {
 }
 
 pub trait LatticeSemantics<L> {
-    fn propagate(&self, op: &Operation) -> Result<L, Report>;
+    fn propagate(&self, op: &Operation, vtypes: Vec<&L>) -> Result<L, Report>;
 }
 
 pub trait LatticeJoin {
@@ -129,7 +129,8 @@ where
             match intr.query_ref::<dyn LatticeSemantics<L>>() {
                 None => bail!("Intrinsic fails to support lattice semantics."),
                 Some(lintr) => {
-                    let ltype = lintr.propagate(o)?;
+                    let vtypes = self.resolve_to_lattice(o)?;
+                    let ltype = lintr.propagate(o, vtypes)?;
                     self.insert(v, ltype);
                 }
             }
