@@ -87,7 +87,7 @@ impl LatticeSemantics<ArithLattice> for Return {
 
 #[test]
 fn typeinf_0() -> Result<(), Report> {
-    diagnostics_setup()?;
+    diagnostics_setup();
     // When using the abstract interpretation system,
     // you must declare the propagation rule as a dynamic interface.
     dynamic_interfaces! {

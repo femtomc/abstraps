@@ -99,12 +99,13 @@ impl LatticeSemantics<ArithLattice> for Return {
 
 #[test]
 fn concrete_0() -> Result<(), Report> {
-    diagnostics_setup()?;
+    diagnostics_setup();
+
     // When using the abstract interpretation system,
     // you must declare the propagation rule as a dynamic interface.
     dynamic_interfaces! {
         Return: dyn LatticeSemantics<ArithLattice>;
-                Addi: dyn LatticeSemantics<ArithLattice>;
+        Addi: dyn LatticeSemantics<ArithLattice>;
     }
 
     let mut func1 = Func.get_builder("new_func1", LocationInfo::Unknown)?;

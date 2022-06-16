@@ -6,7 +6,7 @@ use abstraps::*;
 
 #[test]
 fn passes_0() -> Result<(), Report> {
-    diagnostics_setup()?;
+    diagnostics_setup();
     let mut module = Module.get_builder("foo", LocationInfo::Unknown)?;
     let mut func1 = Func.get_builder("new_func1", LocationInfo::Unknown)?;
     let operands = vec![func1.push_arg()?, func1.push_arg()?];

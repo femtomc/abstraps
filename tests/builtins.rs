@@ -4,7 +4,7 @@ use abstraps::*;
 
 #[test]
 fn builtins_module_operation_0() -> Result<(), Report> {
-    diagnostics_setup()?;
+    diagnostics_setup();
     let builder = Module.get_builder("foo", LocationInfo::Unknown)?;
     let op = builder.finish();
     assert!(op.is_ok());
