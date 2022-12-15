@@ -1,7 +1,6 @@
 #![doc = include_str!("../README.md")]
 #![warn(rustdoc::missing_doc_code_examples)]
 
-pub mod backends;
 pub mod core;
 pub mod dialects;
 
